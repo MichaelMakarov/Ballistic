@@ -94,8 +94,8 @@ namespace ball
                 const unsigned int millisec);
             ~DateTime() {}
 
-            const Date& Date() const;
-            const Time& Time() const;
+            const Date& GetDate() const { return _date; }
+            const Time& GetTime() const { return _time; }
 
             friend std::ostream& operator << (std::ostream& o, const DateTime& d);
 

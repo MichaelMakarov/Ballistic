@@ -10,7 +10,7 @@ namespace ball
 {
     namespace formats
     {
-        bool TleFromFile(const char* filepath, TleFormat& f)
+        bool TleFromFile(const std::string& filepath, TleFormat& f)
         {
             std::ifstream fread(filepath);
             if (!fread) return false;

@@ -1,4 +1,5 @@
 #include "GeoPotential.h"
+#include <cmath>
 
 namespace ball
 {

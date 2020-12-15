@@ -2,6 +2,7 @@
 #include "RBL.h"
 #include "PotentialModel.h"
 #include "LegendrePolynom.h"
+#include <memory>
 
 namespace ball
 {

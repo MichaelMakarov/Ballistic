@@ -20,11 +20,11 @@ namespace ball
 
 			friend std::ostream& operator << (std::ostream& o, const XYZ& v);
 
-			friend XYZ& operator + (const XYZ& f, const XYZ& s);
-			friend XYZ& operator - (const XYZ& f, const XYZ& s);
-			friend XYZ& operator * (const XYZ& v, const double n);
-			friend XYZ& operator / (const XYZ& v, const double n);
-			friend XYZ& operator * (const double n, const XYZ& v);
+			friend XYZ operator + (const XYZ& f, const XYZ& s);
+			friend XYZ operator - (const XYZ& f, const XYZ& s);
+			friend XYZ operator * (const XYZ& v, const double n);
+			friend XYZ operator / (const XYZ& v, const double n);
+			friend XYZ operator * (const double n, const XYZ& v);
 		};
 	}
 }

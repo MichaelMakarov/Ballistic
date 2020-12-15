@@ -1,5 +1,6 @@
 #include "LegendrePolynom.h"
 #include <cmath>
+#include <cstring>
 #include "MathFunctions.h"
 
 namespace ball

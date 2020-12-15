@@ -198,9 +198,6 @@ namespace ball
             _time = time;
         }
 
-        const time::Date& DateTime::Date() const { return _date; }
-        const time::Time& DateTime::Time() const { return _time; }
-
         std::ostream& operator << (std::ostream& o, const DateTime& d)
         {
             o << d._date << ' ' << d._time;
@@ -232,8 +229,8 @@ namespace ball
         }
         JD::JD(const DateTime& dt)
         {
-            Date d = dt.Date();
-            Time t = dt.Time();
+            Date d = dt.GetDate();
+            Time t = dt.GetTime();
             unsigned int a = (14 - d.Month()) / 12,
                 y = d.Year() + 4800 - a,
                 m = d.Month() + 12 * a - 3;

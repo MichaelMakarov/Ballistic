@@ -1,5 +1,6 @@
 #include "Matrix3x3.h"
 #include <memory>
+#include <cstring>
 
 namespace ball
 {
@@ -48,7 +49,7 @@ namespace ball
 					(m._values[1] * m._values[6] - m._values[0] * m._values[7]) / det,
 					(m._values[0] * m._values[4] - m._values[1] * m._values[3]) / det
 				);
-			std::_Xruntime_error("Degenerate matrix!");
+			throw std::runtime_error("Degenerate matrix!");
 		}
 
 		Matrix3x3 Matrix3x3::Eye()
