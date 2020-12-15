@@ -10,7 +10,10 @@ add_library(
     src/DateTime.cpp
     src/StateTypes.cpp
     src/MathFunctions.cpp 
-    src/LegendrePolynom.cpp  )
+    src/LegendrePolynom.cpp   
+    src/Matrix3x3.cpp 
+    src/PV.cpp
+)
 add_executable(
     TestGeneral
     test/Test.cpp)

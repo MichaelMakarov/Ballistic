@@ -3,11 +3,15 @@
 #include "Constants.h"
 #include "LegendrePolynom.h"
 #include "MathFunctions.h"
+#include "Matrix3x3.h"
 #include <fstream>
+
+using namespace ball;
 
 void TestDateTime();
 void TestLegendrePolynom();
 void TestFactorial();
+void TestMatrix();
 
 int main()
 {
@@ -17,6 +21,8 @@ int main()
 	TestDateTime();
 	std::cout << "\n...Testing Legendre polynoms...\n";
 	TestLegendrePolynom();
+	std::cout << "\n...Testing matrices...\n";
+	TestMatrix();
 	return 0;
 }
 
@@ -47,7 +53,7 @@ void TestDateTime()
 void TestLegendrePolynom()
 {
 	std::cout << "Legendre polynoms\n";
-	ball::math::LegendrePolynom p1(3), 
+	math::LegendrePolynom p1(3), 
 		p2(10), 
 		p3(15);
 	double v1 = -0.5, v2 = 0.5;
@@ -60,7 +66,7 @@ void TestLegendrePolynom()
 	std::cout << "P15(" << v2 << ") = " << p3(v2) << std::endl;
 
 	std::cout << "Legendre functions\n";
-	ball::math::LegendreFunction f1(3, 1),
+	math::LegendreFunction f1(3, 1),
 		f2(10, 5),
 		f3(15, 0),
 		f4(3, 2);
@@ -78,7 +84,30 @@ void TestFactorial()
 {
 	std::ofstream fout("factorials.txt");
 	for (size_t i = 21; i <= 30; ++i)
-		fout << i << " : " << ball::math::Factorial(i) << std::endl;
+		fout << i << " : " << math::Factorial(i) << std::endl;
 	fout.close();
 }
 
+void TestMatrix()
+{
+	const double a[3]{ 0.212340538, 0.590533136, 0.911412040 };
+	math::Matrix3x3 m1, m2(1, 2, 3, 1, 2, 4, 3, 2, 1),
+		m3 = math::Matrix3x3::Inv(m2),
+		m4 = math::Matrix3x3::Eye(),
+		m5 = math::Matrix3x3(
+			a[0], a[0] * a[0], a[0] * a[0] * a[0],
+			a[1], a[1] * a[1], a[1] * a[1] * a[1],
+			a[2], a[2] * a[2], a[2] * a[2] * a[2]),
+		m6 = math::Matrix3x3::Inv(m5);
+	std::cout << "M1: " << m1 << std::endl;
+	std::cout << "M2: " << m2 << std::endl;
+	std::cout << "M4: " << m4 << std::endl;
+	std::cout << "M3 = M2^-1: " << m3 << std::endl;
+	std::cout << "M2 * M3: " << m2 * m3 << std::endl;
+	std::cout << "M2 + M4: " << m2 + m4 << std::endl;
+	std::cout << "M2 - M4: " << m2 - m4 << std::endl;
+	std::cout << "M2 * 3.5: " << m2 * 3.5 << std::endl;
+	std::cout << "M5: " << m5 << std::endl;
+	std::cout << "M6: " << m6 << std::endl;
+	std::cout << "M5 * M6: " << m5 * m6 << std::endl;
+}

@@ -8,8 +8,10 @@ namespace ball
 	{
 		struct PV
 		{
-			double Pos[3], Vel[3];
+			double P1, P2, P3, V1, V2, V3;
 
+			PV() : P1(0), P2(0), P3(0), V1(0), V2(0), V3(0)
+			{}
 			PV(
 				const double px,
 				const double py, 
@@ -17,40 +19,35 @@ namespace ball
 				const double vx,
 				const double vy,
 				const double vz) : 
-					Pos{ px, py, pz },
-					Vel{ vx, vy, vz }
+					P1{ px }, P2{ py }, P3{ pz },
+					V1{ vx }, V2{ vy }, V3{ vz }
 			{}
 			PV(
 				const geometry::XYZ& position, 
 				const geometry::XYZ& velocity) :
-					Pos{ position.X, position.Y, position.Z },
-					Vel{ velocity.X, velocity.Y, velocity.Z }
-			{}
-			PV(
-				const double r,
-				const double b,
-				const double l,
-				const double dr,
-				const double db,
-				const double dl) :
-					Pos{ r, b, l },
-					Vel{ dr, db, dl }
+					P1{ position.X }, 
+					P2{ position.Y }, 
+					P3{ position.Z },
+					V1{ velocity.X }, 
+					V2{ velocity.Y }, 
+					V3{ velocity.Z }
 			{}
 			PV(
 				const geometry::RBL& position,
 				const geometry::RBL& velocity) :
-					Pos{ position.R, position.B, position.L },
-					Vel{ velocity.R, velocity.B, velocity.L }
+					P1{ position.R },
+					P2{ position.B },
+					P3{ position.L },
+					V1{ velocity.R },
+					V2{ velocity.B },
+					V3{ velocity.L }
 			{}
-			PV(const PV& pv)
-			{
-				Pos[0] = pv.Pos[0];
-				Pos[1] = pv.Pos[1];
-				Pos[2] = pv.Pos[2];
-				Vel[0] = pv.Vel[0];
-				Vel[1] = pv.Vel[1];
-				Vel[2] = pv.Vel[2];
-			}
+			PV(const PV& pv) : 
+				P1{ pv.P1 }, P2{ pv.P2 }, P3{ pv.P3 },
+				V1{ pv.V1 }, V2{ pv.V2 }, V3{ pv.V3 }
+			{}
+
+			friend std::ostream& operator << (std::ostream& o, const PV& pv);
 
 		};
 	}
