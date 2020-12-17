@@ -9,7 +9,7 @@ namespace ball
 		{
 			double R, B, L;
 
-			RBL() {}
+			RBL() : R(0), B(0), L(0) {}
 			RBL(
 				const double r,
 				const double b,

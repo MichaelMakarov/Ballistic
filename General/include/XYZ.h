@@ -8,7 +8,7 @@ namespace ball
 		struct XYZ
 		{
 			double X, Y, Z;
-			XYZ() {}
+			XYZ() : X(0), Y(0), Z(0) {}
 			XYZ(
 				const double x,
 				const double y,

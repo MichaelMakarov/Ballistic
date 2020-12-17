@@ -1,4 +1,6 @@
 ﻿cmake_minimum_required (VERSION 3.8)
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 project(Ballistic)
 add_subdirectory(General)
@@ -14,7 +16,8 @@ include_directories(
 add_library(
 	Ballistic 
 	src/Ballistic.cpp
-	src/PlahovIntegrator.cpp)
+	src/PlahovIntegrator.cpp
+	src/RungeKuttaIntegrator.cpp)
 
 add_executable(
 	TestBallistic

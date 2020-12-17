@@ -1,4 +1,5 @@
 #include "PlahovIntegrator.h"
+#include "RungeKuttaIntegrator.h"
 #include "GeoPotential.h"
 #include "EGM96.h"
 #include "AstroValues.h"
@@ -28,14 +29,20 @@ void TestIntegrator()
 			tasks::egm96::Mu,
 			16);
 		auto rbl = tasks::GCS_OrthoToSpher(geometry::XYZ(x.P1, x.P2, x.P3));
-		double pot = geopot(rbl) / rbl.R;
+		double pot = -geopot(rbl) / rbl.R;
 		auto xyz = tasks::GCS_SpherToOrtho(geometry::RBL(pot, rbl.B, rbl.L));
-		return types::PV(xyz, geometry::XYZ());
+		return types::PV(geometry::XYZ(x.V1, x.V2, x.V3), xyz);
 	};
-	PlahovIntegrator integr;
-	integr.Initialize(x0, t0);
-	integr.Function(f);
-	t0.AddSeconds(60);
-	auto xk = integr.Integrate(t0);
-	std::cout << xk << std::endl;
+	double step = 60.0 / time::SecPerDay;
+	PlahovIntegrator plint;
+	plint.Initialize(x0, t0);
+	plint.Function(f);
+	auto xk = plint.Integrate(step);
+	std::cout << "Plahov's integrator: " << xk << std::endl;
+
+	RungeKuttaIntegrator rkint;
+	rkint.Initialize(x0, t0);
+	rkint.Function(f);
+	xk = rkint.Integrate(step);
+	std::cout << "Runge-Kutta's integrator: " << xk << std::endl;
 }
