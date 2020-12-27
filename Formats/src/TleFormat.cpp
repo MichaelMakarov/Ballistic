@@ -68,7 +68,7 @@ namespace ball
                 else jd.AddDays(365);
             return types::OsculParams(
                 tasks::SemimajorAxisFromPeriod(
-                    static_cast<double>(time::SecPerDay) / Frequency, 
+                    static_cast<double>(time::SEC_PER_DAY) / Frequency, 
                     tasks::pz90::Mu),
                 Eccentricity,
                 Inclination,

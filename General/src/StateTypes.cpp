@@ -14,7 +14,7 @@ namespace ball
             const geometry::XYZ& r,
             const geometry::XYZ& v,
             const double sb,
-            const time::JD t,
+            const time::JD& t,
             const unsigned int n)
         {
             R = r;

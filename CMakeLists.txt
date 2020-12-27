@@ -17,7 +17,8 @@ add_library(
 	Ballistic 
 	src/Ballistic.cpp
 	src/PlahovIntegrator.cpp
-	src/RungeKuttaIntegrator.cpp)
+	src/RungeKuttaIntegrator.cpp
+	src/AdamsBashforthIntegrator.cpp)
 
 add_executable(
 	TestBallistic

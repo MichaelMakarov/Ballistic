@@ -107,16 +107,21 @@ namespace ball
         struct JD
         {
         private:
-            double _jd;
+            size_t _jd;
+            double _jt;
 
         public:
             JD() {}
             explicit JD(const DateTime& dt);
+            JD(const size_t jdn, const double time);
             JD(const double jd);
             ~JD() {}
 
+            JD& operator = (const double jd);
+            JD& operator = (const JD& jd);
+
             double Get() const;
-            unsigned int JDN() const;
+            size_t JDN() const;
             DateTime ToDateTime() const;
 
             void AddDays(const int n);
@@ -124,7 +129,7 @@ namespace ball
             void AddMinutes(const int n);
             void AddSeconds(const int n);
 
-            operator double() const { return _jd; }
+            operator double() const { return _jt; }
 
             friend std::ostream& operator << (std::ostream& o, const JD& jd);
         };

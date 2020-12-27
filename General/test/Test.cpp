@@ -38,7 +38,9 @@ void TestDateTime()
 	std::cout << "DateTime4: " << dt4 << std::endl;
 	std::cout << "DateTime1 > DateTime2: " << (dt3 > dt2) << std::endl;
 	std::cout << "DateTime1 < DateTime2: " << (dt3 < dt2) << std::endl;
-	ball::time::JD jd2(dt2), jd3(dt3), jd4 = ball::time::JD2000,
+	ball::time::JD jd2(dt2), 
+		jd3(dt3), 
+		jd4 = ball::time::JD2000,
 		jd5(dt4);
 	std::cout << "JD2 = " << jd2 << std::endl;
 	std::cout << "JD3 = " << jd3 << std::endl;

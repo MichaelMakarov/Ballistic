@@ -47,6 +47,15 @@ namespace ball
 				V1{ pv.V1 }, V2{ pv.V2 }, V3{ pv.V3 }
 			{}
 
+			PV& operator += (const PV& pv);
+			PV& operator -= (const PV& pv);
+			PV& operator *= (const double m);
+
+			friend PV operator + (const PV& f, const PV& s);
+			friend PV operator - (const PV& f, const PV& s);
+			friend PV operator * (const double m, const PV& pv);
+			friend PV operator * (const PV& pv, const double m);
+
 			friend std::ostream& operator << (std::ostream& o, const PV& pv);
 
 		};

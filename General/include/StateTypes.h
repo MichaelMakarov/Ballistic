@@ -8,8 +8,8 @@ namespace ball
     {
         struct StateParams
         {
-            geometry::XYZ R;   // a position vector
-            geometry::XYZ V;   // a velocity vector
+            geometry::XYZ R;    // a position vector
+            geometry::XYZ V;    // a velocity vector
             double Sb;          // a ballistic coefficient
             time::JD T;         // a julian date
             unsigned int LoopN; // a number of the loop
@@ -18,7 +18,7 @@ namespace ball
                 const geometry::XYZ& r,
                 const geometry::XYZ& v,
                 const double sb,
-                const time::JD t,
+                const time::JD& t,
                 const unsigned int n);
 
             friend std::ostream& operator << (std::ostream& o, const StateParams& p);

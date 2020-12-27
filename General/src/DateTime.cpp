@@ -1,6 +1,7 @@
 #include <stdexcept>
 #include "DateTime.h"
 #include "Constants.h"
+#include <cmath>
 
 namespace ball
 {
@@ -222,10 +223,16 @@ namespace ball
             return f._date == s._date && f._time == s._time;
         }
 
+        JD::JD(const size_t jd, const double jt)
+        {
+            _jd = jd;
+            _jt = jt;
+        }
         JD::JD(const double jd)
         {
-            if (jd < 0.0) throw std::runtime_error("Invalid JD!");
-            _jd = jd;
+            double jdn;
+            _jt = std::modf(jd, &jdn);
+            _jd = static_cast<size_t>(jdn);
         }
         JD::JD(const DateTime& dt)
         {
@@ -235,19 +242,22 @@ namespace ball
                 y = d.Year() + 4800 - a,
                 m = d.Month() + 12 * a - 3;
             _jd = d.Day() + (153 * m + 2) / 5 + 365 * y + y / 4 - y / 100 + y / 400 - 32045;
-            _jd += ((static_cast<double>(t.Hour()) - 12) +
+            _jt = ((static_cast<double>(t.Hour()) - 12) +
                 (static_cast<double>(t.Minute()) +
                     (static_cast<double>(t.Second()) +
                         static_cast<double>(t.Millisecond()) * 1e-3) / 60) / 60) / 24;
         }
 
-        double JD::Get() const { return _jd; }
-        unsigned int JD::JDN() const { return static_cast<unsigned int>(_jd); }
+        double JD::Get() const { return _jt; }
+        size_t JD::JDN() const { return _jd; }
 
         DateTime JD::ToDateTime() const
         {
-            unsigned int jdn = JDN(),
-                a = jdn + 32044,
+            size_t dn;
+            double t = std::modf(1.0 + _jt, reinterpret_cast<double*>(&dn));
+            dn += _jd - 1;
+            size_t 
+                a = dn + 32044,
                 b = (4 * a + 3) / 146097,
                 c = a - (146097 * b) / 4,
                 d = (4 * c + 3) / 1461,
@@ -256,11 +266,10 @@ namespace ball
                 day = e - (153 * m + 2) / 5 + 1,
                 month = m + 3 - 12 * (m / 10),
                 year = 100 * b + d - 4800 + (m / 10);
-            double p = _jd - jdn;
-            unsigned int hour = p * HoursPerDay,
-                minute = p * MinPerDay - hour * MinPerHour,
-                second = p * SecPerDay - hour * SecPerHour - minute * SecPerMin,
-                millisec = static_cast<unsigned int>(p * SecPerDay * 1000) % 1000;
+            unsigned int hour = t * HOURS_PER_DAY,
+                minute = t * MIN_PER_DAY - hour * MIN_PER_HOUR,
+                second = t * SEC_PER_DAY - hour * SEC_PER_HOUR - minute * SEC_PER_MIN,
+                millisec = static_cast<unsigned int>(t * SEC_PER_DAY * 1000) % 1000;
             if (hour >= 12) {
                 day += 1;
                 hour -= 12;
@@ -268,23 +277,43 @@ namespace ball
             return DateTime(year, month, day, hour, minute, second, millisec);
         }
 
+        JD& JD::operator = (const double jd)
+        {
+            double jdn;
+            _jt = std::modf(jd, &jdn);
+            _jd = static_cast<size_t>(jdn);
+            return *this;
+        }
+        JD& JD::operator = (const JD& jd)
+        {
+            _jd = jd._jd;
+            _jt = jd._jt;
+            return *this;
+        }
+
         void JD::AddDays(const int n) { _jd += n; }
         void JD::AddHours(const int n)
         {
-            _jd += static_cast<double>(n) / HoursPerDay;
+            double day;
+            _jt = std::modf(_jt + n / HOURS_PER_DAY, &day);
+            _jd += day;
         }
         void JD::AddMinutes(const int n)
         {
-            _jd += static_cast<double>(n) / MinPerDay;
+            double day;
+            _jt = std::modf(_jt + n / MIN_PER_DAY, &day);
+            _jd += day;
         }
         void JD::AddSeconds(const int n)
         {
-            _jd += static_cast<double>(n) / SecPerDay;
+            double day;
+            _jt = std::modf(_jt + _jd + n / SEC_PER_DAY, &day);
+            _jd += day;
         }
 
         std::ostream& operator << (std::ostream& o, const JD& jd)
         {
-            o << jd._jd;
+            o << jd._jt;
             return o;
         }
     }
