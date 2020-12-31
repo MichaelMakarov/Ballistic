@@ -31,8 +31,8 @@ namespace ball
 				return _harmonics;
 			}
 		private:
-			const unsigned int _count = 16;
-			const std::vector<std::pair<double, double>> _harmonics
+			static inline const unsigned int _count = 16;
+			static inline const std::vector<std::pair<double, double>> _harmonics
 			{
 				//   C                       S
 				// 0

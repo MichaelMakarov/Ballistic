@@ -11,7 +11,7 @@ namespace ball
         public:
             virtual double Density(
                 const geometry::XYZ& position, 
-                const time::JD& time) = 0;
+                const time::JD& time) const = 0;
         };
     }
 }

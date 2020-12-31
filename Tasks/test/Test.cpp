@@ -3,6 +3,7 @@
 #include "Constants.h"
 #include "AstroValues.h"
 #include "MathFunctions.h"
+#include "StaticAtmosphere81.h"
 #include <iostream>
 #include <iomanip>
 
@@ -11,6 +12,7 @@ using namespace ball;
 
 void TestConversions();
 void TestGeoPotential();
+void TestAtmosphere();
 
 int main()
 {
@@ -18,6 +20,8 @@ int main()
 	TestConversions();
 	std::cout << "...GeoPotential tests...\n";
 	TestGeoPotential();
+	std::cout << "...Atmosphere tests...\n";
+	TestAtmosphere();
 	return 0;
 }
 
@@ -46,4 +50,12 @@ void TestGeoPotential()
 	std::cout << std::setprecision(16);
 	std::cout << "The point is " << p << std::endl;
 	std::cout << "The potential is " << a << std::endl;
+}
+
+void TestAtmosphere()
+{
+	geometry::XYZ p(-4688980.289, -11060428.914, 238914.750);
+	std::cout << "Position: " << p << std::endl;
+	StaticAtmosphere81 sma81;
+	std::cout << "Static atmosphere 1981: rho = " << sma81.Density(p, ball::time::JD2000) << std::endl;;
 }

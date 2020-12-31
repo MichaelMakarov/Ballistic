@@ -22,6 +22,8 @@ namespace ball
             inline constexpr double X{ 1.4 };
             // effective diameter of the molecule (m)
             inline constexpr double SIGMA{ 0.365e-9 };
+            // average density of Earth
+            inline constexpr double Rho_E{ 5510 };
         }
     }
 }

@@ -9,6 +9,7 @@ add_library(
 	Tasks
 	src/AstroValues.cpp
 	src/GeoPotential.cpp
+	src/StaticAtmosphere81.cpp
 )
 add_executable(
 	TestTasks
