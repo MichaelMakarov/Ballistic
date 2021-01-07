@@ -5,7 +5,7 @@ namespace ball
 {
 	namespace math
 	{
-		class LegendrePolynom
+		class LegendrePolynomial
 		{
 		protected:
 			size_t _degree;
@@ -14,38 +14,40 @@ namespace ball
 		private:
 			void CreatePolynom(
 				std::vector<double>& values, 
-				const size_t degree,
-				const size_t size);
-
-			double _norm;
+				const size_t degree);
+			
+			bool _normalized;
 
 		public:
-			explicit LegendrePolynom(const size_t degree = 0);
-			~LegendrePolynom() {}
+			explicit LegendrePolynomial(
+				const size_t degree = 0,
+				const bool normalized = false);
+			~LegendrePolynomial() {}
 
 			size_t Degree() const;
 
-			double Norm() const;
+			bool Normalized() const;
 
 			virtual double operator () (const double x) const;
 			double operator [] (const size_t i) const;
 		};
 
-		class LegendreFunction : public LegendrePolynom
+		class LegendreFunction : public LegendrePolynomial
 		{
 		private:
 			size_t _derivation;
-			double _norm;
+			bool _normalized;
 
 		public:
 			LegendreFunction(
 				const size_t degree = 0,
-				const size_t derivation = 0);
+				const size_t derivation = 0,
+				const bool normalized = false);
 			~LegendreFunction() {}
 
 			size_t Derivation() const;
 
-			double Norm() const;
+			bool Normalized() const;
 
 			double operator () (const double x) const override;
 		};

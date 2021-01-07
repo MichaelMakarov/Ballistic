@@ -225,39 +225,35 @@ namespace ball
 
         JD::JD(const size_t jd, const double jt)
         {
-            _jd = jd;
-            _jt = jt;
+            _day = jd;
+            _time = jt;
         }
         JD::JD(const double jd)
         {
             double jdn;
-            _jt = std::modf(jd, &jdn);
-            _jd = static_cast<size_t>(jdn);
+            _time = std::modf(jd, &jdn);
+            _day = static_cast<size_t>(jdn);
         }
         JD::JD(const DateTime& dt)
         {
             Date d = dt.GetDate();
             Time t = dt.GetTime();
             unsigned int a = (14 - d.Month()) / 12,
-                y = d.Year() + 4800 - a,
+                y = 4800 + d.Year() - a,
                 m = d.Month() + 12 * a - 3;
-            _jd = d.Day() + (153 * m + 2) / 5 + 365 * y + y / 4 - y / 100 + y / 400 - 32045;
-            _jt = ((static_cast<double>(t.Hour()) - 12) +
-                (static_cast<double>(t.Minute()) +
-                    (static_cast<double>(t.Second()) +
-                        static_cast<double>(t.Millisecond()) * 1e-3) / 60) / 60) / 24;
+            _day = d.Day() + (153 * m + 2) / 5 + 365 * y + y / 4 - y / 100 + y / 400 - 32045;
+            _time = (t.Hour() + (t.Minute() + (t.Second() + t.Millisecond() * 1e-3) / 60) / 60) / 24;
         }
 
-        double JD::Get() const { return _jt; }
-        size_t JD::JDN() const { return _jd; }
+        size_t JD::JDN() const { return _day; }
+        double JD::DayT() const { return _time; }
 
         DateTime JD::ToDateTime() const
         {
-            size_t dn;
-            double t = std::modf(1.0 + _jt, reinterpret_cast<double*>(&dn));
-            dn += _jd - 1;
-            size_t 
-                a = dn + 32044,
+            double dn = _day;
+            double t{ _time };
+            unsigned int
+                a = static_cast<unsigned int>(dn) + 32044,
                 b = (4 * a + 3) / 146097,
                 c = a - (146097 * b) / 4,
                 d = (4 * c + 3) / 1461,
@@ -266,54 +262,97 @@ namespace ball
                 day = e - (153 * m + 2) / 5 + 1,
                 month = m + 3 - 12 * (m / 10),
                 year = 100 * b + d - 4800 + (m / 10);
-            unsigned int hour = t * HOURS_PER_DAY,
-                minute = t * MIN_PER_DAY - hour * MIN_PER_HOUR,
-                second = t * SEC_PER_DAY - hour * SEC_PER_HOUR - minute * SEC_PER_MIN,
+            unsigned int hour = static_cast<unsigned int>(t * HOURS_PER_DAY),
+                minute = static_cast<unsigned int>(t * MIN_PER_DAY - hour * MIN_PER_HOUR),
+                second = static_cast<unsigned int>(t * SEC_PER_DAY - hour * SEC_PER_HOUR - minute * SEC_PER_MIN),
                 millisec = static_cast<unsigned int>(t * SEC_PER_DAY * 1000) % 1000;
-            if (hour >= 12) {
-                day += 1;
-                hour -= 12;
-            }
             return DateTime(year, month, day, hour, minute, second, millisec);
+        }
+
+        double JD::ToDouble() const
+        {
+            return _time + _day;
         }
 
         JD& JD::operator = (const double jd)
         {
             double jdn;
-            _jt = std::modf(jd, &jdn);
-            _jd = static_cast<size_t>(jdn);
+            _time = std::modf(jd, &jdn);
+            _day = static_cast<size_t>(jdn);
             return *this;
         }
         JD& JD::operator = (const JD& jd)
         {
-            _jd = jd._jd;
-            _jt = jd._jt;
+            _day = jd._day;
+            _time = jd._time;
             return *this;
         }
 
-        void JD::AddDays(const int n) { _jd += n; }
+        void JD::AddDays(const int n) { _day += n; }
         void JD::AddHours(const int n)
         {
             double day;
-            _jt = std::modf(_jt + n / HOURS_PER_DAY, &day);
-            _jd += day;
+            _time = std::modf(_time + n / HOURS_PER_DAY, &day);
+            _day += static_cast<size_t>(day);
         }
         void JD::AddMinutes(const int n)
         {
             double day;
-            _jt = std::modf(_jt + n / MIN_PER_DAY, &day);
-            _jd += day;
+            _time = std::modf(_time + n / MIN_PER_DAY, &day);
+            _day += static_cast<size_t>(day);
         }
         void JD::AddSeconds(const int n)
         {
             double day;
-            _jt = std::modf(_jt + _jd + n / SEC_PER_DAY, &day);
-            _jd += day;
+            _time = std::modf(_time + n / SEC_PER_DAY, &day);
+            _day += static_cast<size_t>(day);
+        }
+
+        JD operator + (const JD& jd, const double dt)
+        {
+            JD result;
+            double day;
+            result._time = std::modf(jd._time + dt, &day);
+            result._day = jd._day + static_cast<size_t>(day);
+            return result;
+        }
+        JD operator - (const JD& jd, const double dt)
+        {
+            JD result;
+            double day;
+            result._time = std::modf(jd._time - dt, &day);
+            result._day = jd._day + static_cast<size_t>(day);
+            return result;
+        }
+        double operator - (const JD& f, const JD& s)
+        {
+            return (f._time - s._time) + (f._day - s._day);
+        }
+
+        bool operator < (const JD& f, const JD& s)
+        {
+            return f._day < s._day && (f._time - s._time) < -1.0 / MILLISEC_PER_SEC / SEC_PER_DAY;
+        }
+        bool operator > (const JD& f, const JD& s)
+        {
+            return f._day > s._day && (f._time - s._time) > 1.0 / MILLISEC_PER_SEC / SEC_PER_DAY;
+        }
+        bool operator == (const JD& f, const JD& s)
+        {
+            return f._day == s._day && (f._time - s._time) < 1.0 / MILLISEC_PER_SEC / SEC_PER_DAY;
+        }
+        bool operator <= (const JD& f, const JD& s)
+        {
+            return f._day < s._day || (f._day == s._day && f._time <= s._time);
+        }
+        bool operator >= (const JD& f, const JD& s)
+        {
+            return f._day > s._day || (f._day == s._day && f._time >= s._time);
         }
 
         std::ostream& operator << (std::ostream& o, const JD& jd)
         {
-            o << jd._jt;
+            o << jd._day << std::ends << jd._time;
             return o;
         }
     }

@@ -18,6 +18,12 @@ namespace ball
 
 			double Length() const;
 
+			XYZ& operator += (const XYZ& v);
+			XYZ& operator -= (const XYZ& v);
+			double operator *= (const XYZ& v);
+			XYZ& operator /= (const double n);
+			XYZ& operator *= (const double n);
+
 			friend std::ostream& operator << (std::ostream& o, const XYZ& v);
 
 			friend XYZ operator + (const XYZ& f, const XYZ& s);

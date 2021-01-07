@@ -8,6 +8,27 @@ namespace ball
 {
 	namespace tasks
 	{
+		// The height calculation from GCS position and geo parameters.
+		// rad - a radius of Earth's equator.
+		// fl - the flatening of Earth.
+		inline double GCS_HeightFromPosition(
+			const double x, const double y, const double z,
+			const double rad, const double fl)
+		{
+			double dist = std::sqrt(x * x + y * y + z * z);
+			return dist - rad * (1.0 - fl * z * z / dist / dist);
+		}
+		// The height calculation from GCS position and geo parameters.
+		// rad - a radius of Earth's equator.
+		// fl - the flatening of Earth.
+		inline double GCS_HeightFromPosition(
+			const geometry::XYZ& pos,
+			const double rad, const double fl)
+		{
+			double dist = pos.Length();
+			return dist - rad * (1.0 - fl * pos.Z * pos.Z / dist / dist);
+		}
+
 		// True anomaly calculation using the eccentric anomaly and the eccentricity.
 		inline double TrueAnomalyFromEccentric(const double E, const double e)
 		{
@@ -16,7 +37,7 @@ namespace ball
 			return std::atan2(sinv, cosv);
 		}
 		// True anomaly calculation using the mean anomaly and the eccentricity.
-		double TrueAnomalyFromMeanAnomaly(const double M, const double e)
+		inline double TrueAnomalyFromMeanAnomaly(const double M, const double e)
 		{
 			return M + e * ((2 - 0.25 * e * e) * std::sin(M) +
 				e * (1.25 * std::sin(2 * M) +
@@ -24,7 +45,7 @@ namespace ball
 		}
 
 		// The radius calculation using the semimajor axis, the true anomaly and the eccentricity.
-		double RadiusFromTrueAnomaly(const double a, const double v, const double e)
+		inline double RadiusFromTrueAnomaly(const double a, const double v, const double e)
 		{
 			return a * (1 - e * e) / (1 + e * std::cos(v));
 		}

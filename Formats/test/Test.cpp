@@ -1,5 +1,6 @@
 ﻿#include <iostream>
 #include "TleFormat.h"
+#include <PZ90.h>
 
 void TestTleFormat();
 
@@ -16,5 +17,5 @@ void TestTleFormat()
 	ball::formats::TleFormat tle1;
 	if (!ball::formats::TleFromFile(filepath, tle1))
 		std::cout << "Failed to load tle from file!\n";
-	ball::types::OsculParams op = tle1.ToOsculParams();
+	ball::types::OsculParams op = tle1.ToOsculParams(std::make_unique<ball::tasks::PZ90>()->Mu());
 }

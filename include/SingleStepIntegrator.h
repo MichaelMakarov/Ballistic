@@ -1,22 +1,22 @@
 #pragma once
 #include "Integrator.h"
-#include <functional>
 
 namespace ball
 {
-	class SingleStepIntegrator : public Integrator
+	template<class ... ArgType>
+	class SingleStepIntegrator : public Integrator<ArgType ...>
 	{
 	protected:
-		double _t0;
+		time::JD _t0;
 		types::PV _x0;
 
 	public:
-		using Integrator::Integrator;
+		SingleStepIntegrator() : _t0(0), _x0() {}
 		~SingleStepIntegrator() {}
 
 		void Initialize(
 			const types::PV& x0,
-			const double t0)
+			const time::JD& t0)
 		{
 			_x0 = x0;
 			_t0 = t0;

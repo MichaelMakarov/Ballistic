@@ -9,10 +9,17 @@ namespace ball
         class StaticAtmosphere81 : public IAtmosphere
         {
         public:
+            StaticAtmosphere81(
+                const double eR, 
+                const double eFl) : _eR{ eR }, _eFl{ eFl } {}
+            ~StaticAtmosphere81() {}
+
             double Density(
                 const geometry::XYZ& position,
                 const time::JD& time) const override;
         private:
+            const double _eR, _eFl;
+
             static inline const std::vector<double> _height{
                 0.0, 0.2e+5, 0.6e+5, 
                 1.0e+5, 1.5e+5, 3.0e+5, 

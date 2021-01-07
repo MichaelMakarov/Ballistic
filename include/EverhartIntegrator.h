@@ -3,5 +3,5 @@
 
 namespace ball
 {
-	class EverhartIntegrator : public Integrator;
+	//class EverhartIntegrator : public Integrator;
 }

@@ -1,6 +1,7 @@
 #pragma once
 #include "RBL.h"
-#include "PotentialModel.h"
+#include "XYZ.h"
+#include "GravityModel.h"
 #include "LegendrePolynom.h"
 #include <memory>
 
@@ -17,17 +18,26 @@ namespace ball
 			size_t _count;
 			double _eR, _eMu;
 
+
+
 		public:
 			GeoPotential(
-				const std::unique_ptr<IPotential> pPotential,
-				const double eR,
-				const double eMu,
+				const std::unique_ptr<IGravity> pPotential,
 				const size_t harmonics);
+			GeoPotential(const GeoPotential& gp) = delete;
 			~GeoPotential() {}
 
-			unsigned int Harmonics() const { return _count; }
+			GeoPotential& operator = (const GeoPotential& gp) = delete;
+			GeoPotential& operator = (GeoPotential&& gp) noexcept;
+
+			size_t Harmonics() const { return _count; }
+
+			double Radius() const { return _eR; }
+			double Mu() const { return _eMu; }
 
 			double operator () (const geometry::RBL& coordinates) const;
+
+			geometry::XYZ Acceleration(const geometry::XYZ& coordinates) const;
 
 		};
 	}

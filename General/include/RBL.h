@@ -17,7 +17,18 @@ namespace ball
 			{}
 			~RBL() {}
 
+			RBL& operator += (const RBL& v);
+			RBL& operator -= (const RBL& v);
+			RBL& operator /= (const double n);
+			RBL& operator *= (const double n);
+
 			friend std::ostream& operator << (std::ostream& o, const RBL& v);
+
+			friend RBL operator + (const RBL& f, const RBL& s);
+			friend RBL operator - (const RBL& f, const RBL& s);
+			friend RBL operator * (const RBL& v, const double n);
+			friend RBL operator / (const RBL& v, const double n);
+			friend RBL operator * (const double n, const RBL& v);
 
 		};
 	}

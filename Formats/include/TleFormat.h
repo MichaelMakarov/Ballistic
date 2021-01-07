@@ -32,7 +32,7 @@ namespace ball
             TleFormat() {}
             ~TleFormat() {}
 
-            types::OsculParams ToOsculParams() const;
+            types::OsculParams ToOsculParams(const double mu) const;
         };
 
         bool TleFromFile (const std::string& filepath, TleFormat& f);

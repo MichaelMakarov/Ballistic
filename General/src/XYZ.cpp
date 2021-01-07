@@ -10,6 +10,39 @@ namespace ball
 			return std::sqrt(X * X + Y * Y + Z * Z);
 		}
 
+        XYZ& XYZ::operator += (const XYZ& v)
+        {
+            X += v.X;
+            Y += v.Y;
+            Z += v.Z;
+            return *this;
+        }
+        XYZ& XYZ::operator -= (const XYZ& v)
+        {
+            X -= v.X;
+            Y -= v.Y;
+            Z -= v.Z;
+            return *this;
+        }
+        double XYZ::operator *= (const XYZ& v)
+        {
+            return X * v.X + Y * v.Y + Z * v.Z;
+        }
+        XYZ& XYZ::operator *= (const double n)
+        {
+            X *= n;
+            Y *= n;
+            Z *= n;
+            return *this;
+        }
+        XYZ& XYZ::operator /= (const double n)
+        {
+            X /= n;
+            Y /= n;
+            Z /= n;
+            return *this;
+        }
+
         XYZ operator + (const XYZ& f, const XYZ& s)
         {
             return XYZ(f.X + s.X, f.Y + s.Y, f.Z + s.Z);

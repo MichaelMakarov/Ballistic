@@ -1,38 +1,23 @@
 ﻿#pragma once
-#include "PotentialModel.h"
+#include "GravityModel.h"
 
 namespace ball
 {
 	namespace tasks
 	{
-		namespace egm96
-		{
-			// a gravitational constant
-			inline constexpr double Mu{ 0.3986004415E+15 };
-			// an equatorial radius
-			inline constexpr double R{ 0.6378136300E+07 };
-			// a square of the eccentricity
-			inline constexpr double Ec2{ 6.69437999014e-3 };
-			// a velocity of the rotation in rad/s
-			inline constexpr double W{ 72.92115e-6 };
-			// a flattening (a compression of Earth's ellipsoid)
-			inline constexpr double Fl{ 1.0 / 298.257223563 };
-		}
-
-		class PotentialEGM96 : public IPotential
+		class EGM96 : public IGravity
 		{
 		public:
-			unsigned int Count() const override
-			{
-				return _count;
-			}
-			const std::vector<std::pair<double, double>>& Harmonics() const override
-			{
-				return _harmonics;
-			}
+			size_t Count() const override { return 16; }
+			double Mu() const override { return 0.3986004415E+15; }
+			double R() const override { return 0.6378136300E+07; }
+			double Ec2() const override { return 6.69437999014e-3; }
+			double W() const override { return 72.92115e-6; }
+			double Fl() const override { return 1.0 / 298.257223563; }
+			const std::vector<std::pair<double, double>>& Harmonics() const { return _harmonics; }
+
 		private:
-			static inline const unsigned int _count = 16;
-			static inline const std::vector<std::pair<double, double>> _harmonics
+			const std::vector<std::pair<double, double>> _harmonics
 			{
 				//   C                       S
 				// 0
@@ -207,72 +192,5 @@ namespace ball
 				{ -0.379671710746e-07,	0.302155372655e-08 },
 			};
 		};
-		//class JGM3 : public IPotentialModel
-		//{
-		//private:
-		//	const double _zonal[7] =
-		//	{
-		//		-0.10826360229840e-2,			// 2
-		//		0.25324353457544e-5,			// 3
-		//		0.16193312050719e-5,			// 4
-		//		0.22771610163688e-6,			// 5
-		//		-0.53964849049834e-6,			// 6
-		//		0.35136844210318e-6,			// 7
-		//		0.20251871520885e-6				// 8
-		//	};
-		//	const std::pair<double, double> _tesseral[35] =
-		//	{
-		//		//       C                    S
-		//		{ -0.24140000522221e-9,	0.15430999737844e-8 },	// 2,1
-		//		{ 0.15745360427672e-5, -0.90386807301869e-6 },	// 2,2
-
-		//		{ 0.21927988018965e-5,	0.26801189379726e-6 },	// 3,1
-		//		{ 0.30901604455583e-6, -0.21140239785975e-6 },	// 3,2
-		//		{ 0.10055885741455e-6, 0.19720132389889e-6 },	// 3,3
-
-		//		{ -0.50872530365024e-6,	-0.44945993508117e-6 },	// 4,1
-		//		{ 0.78412230752366e-7, 0.14815545694714e-6 },	// 4,2
-		//		{ 0.59215743214072e-7, -0.12011291831397e-7 },	// 4,3
-		//		{ -0.39823957404129e-8, 0.65256058113396e-8 },	// 4,4
-
-		//		{ -0.53716510187662e-7,	-0.80663463828530e-7 },	// 5,1
-		//		{ 0.10559053538674e-6, -0.52326723987632e-7 },	// 5,2
-		//		{ -0.14926153867389e-7, -0.71008771406986e-8 },	// 5,3
-		//		{ -0.22979123502681e-8, 0.38730050770804e-9 },	// 5,4
-		//		{ 0.43047675045029e-9, -0.16482039468636e-8 },	// 5,5
-
-		//		{ -0.59877976856303e-7, 0.21164664354382e-7 },	// 6,1
-		//		{ 0.60120988437373e-8, -0.46503948132217e-7 },	// 6,2
-		//		{ 0.11822664115915e-8, 0.18431336880625e-9 },	// 6,3
-		//		{ -0.32641389117891e-9, -0.17844913348882e-8 },	// 6,4
-		//		{ -0.21557711513900e-9, -0.43291816989540e-9 },	// 6,5
-		//		{ 0.22136925556741e-11, -0.55277122205966e-10 },// 6,6
-
-		//		{ 0.20514872797672e-6,	0.69369893525908e-7 },	// 7,1
-		//		{ 0.32844904836492e-7, 0.92823143885084e-8 },	// 7,2
-		//		{ 0.35285405191512e-8, -0.30611502382788e-8 },	// 7,3
-		//		{ -0.58511949148624e-9, -0.26361822157867e-9 },	// 7,4
-		//		{ 0.58184856030873e-12, 0.63972526639235e-11 },	// 7,5
-		//		{ -0.24907176820596e-10, 0.10534878629266e-10 },// 7,6
-		//		{ 0.25590780149873e-13, 0.44759834144751e-12 },	// 7,7
-
-		//		{ 0.16034587141379e-7,	0.40199781599510e-7 },	// 8,1
-		//		{ 0.65765423316743e-8, 0.53813164055056e-8 },	// 8,2
-		//		{ -0.19463581555399e-9, -0.87235195047605e-9 },	// 8,3
-		//		{ -0.31893580211856e-9, 0.91177355887255e-10 },	// 8,4
-		//		{ -0.46151734306628e-11, 0.16125208346784e-10 },// 8,5
-		//		{ -0.18393642697634e-11, 0.86277431674150e-11 },// 8,6
-		//		{ 0.34297618184624e-12, 0.38147656686685e-12 },	// 8,7
-		//		{ -0.15803322891725e-12 , 0.15353381397148e-12 }// 8,8
-		//	};
-		//	const unsigned int _count{ 8 };
-
-		//public:
-		//	unsigned int Count() const override { return _count; }
-		//	const std::vector<std::pair<double, double>>& Harmonics() const override
-		//	{
-
-		//	}
-		//};
 	}
 }

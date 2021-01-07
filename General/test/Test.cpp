@@ -10,56 +10,76 @@ using namespace ball;
 
 void TestDateTime();
 void TestLegendrePolynom();
-void TestFactorial();
 void TestMatrix();
 
 int main()
 {
-	std::cout << "...Testing factorials...\n";
-	TestFactorial();
-	std::cout << "...Testing DateTime...\n";
 	TestDateTime();
-	std::cout << "\n...Testing Legendre polynoms...\n";
 	TestLegendrePolynom();
-	std::cout << "\n...Testing matrices...\n";
 	TestMatrix();
 	return 0;
 }
 
 void TestDateTime()
 {
-	ball::time::DateTime dt1,
-		dt2(2013, 12, 23, 10, 56, 34, 100),
-		dt3(2013, 8, 31, 9, 5, 7, 0),
-		dt4(2064, 5, 7, 10, 14, 19, 0);
-	std::cout << "DateTime1: " << dt1 << std::endl;
-	std::cout << "DateTime2: " << dt2 << std::endl;
-	std::cout << "DateTime3: " << dt3 << std::endl;
-	std::cout << "DateTime4: " << dt4 << std::endl;
-	std::cout << "DateTime1 > DateTime2: " << (dt3 > dt2) << std::endl;
-	std::cout << "DateTime1 < DateTime2: " << (dt3 < dt2) << std::endl;
-	ball::time::JD jd2(dt2), 
-		jd3(dt3), 
-		jd4 = ball::time::JD2000,
-		jd5(dt4);
+	std::cout << "\n...DateTime tests...\n";
+
+	using namespace ball::time;
+
+	auto dt0{ DateTime() };
+	auto dt1{ DateTime(2000, 1, 3, 23, 23, 23, 423) };
+	auto dt2{ DateTime(2000, 1, 3, 0, 0, 1, 0) };
+	auto dt3{ DateTime(2013, 12, 23, 1, 56, 34, 100) };
+	auto dt4{ DateTime(2013, 12, 23, 11, 5, 7, 0) };
+	auto dt5{ DateTime(2013, 12, 23, 20, 23, 19, 0) };
+
+	std::cout << "dt0: " << dt0 << std::endl;
+	std::cout << "dt1: " << dt1 << std::endl;
+	std::cout << "dt2: " << dt2 << std::endl;
+	std::cout << "dt3: " << dt3 << std::endl;
+	std::cout << "dt4: " << dt4 << std::endl;
+	std::cout << "dt5: " << dt5 << std::endl;
+
+	auto jd0{ JD(JD2000) };
+	auto jd1{ JD(dt1) };
+	auto jd2{ JD(dt2) };
+	auto jd3{ JD(dt3) };
+	auto jd4{ JD(dt4) };
+	auto jd5{ JD(dt5) };
+	auto jd6{ jd5 + 4 / HOURS_PER_DAY };
+
+	std::cout << "JD0 = " << jd0 << std::endl;
+	std::cout << "JD1 = " << jd1 << std::endl;
 	std::cout << "JD2 = " << jd2 << std::endl;
 	std::cout << "JD3 = " << jd3 << std::endl;
 	std::cout << "JD4 = " << jd4 << std::endl;
 	std::cout << "JD5 = " << jd5 << std::endl;
+	std::cout << "JD6 = " << jd6 << std::endl;
+
+	std::cout << "JD0 to DateTime: " << jd0.ToDateTime() << std::endl;
+	std::cout << "JD1 to DateTime: " << jd1.ToDateTime() << std::endl;
 	std::cout << "JD2 to DateTime: " << jd2.ToDateTime() << std::endl;
 	std::cout << "JD3 to DateTime: " << jd3.ToDateTime() << std::endl;
 	std::cout << "JD4 to DateTime: " << jd4.ToDateTime() << std::endl;
 	std::cout << "JD5 to DateTime: " << jd5.ToDateTime() << std::endl;
+	std::cout << "JD6 to DateTime: " << jd6.ToDateTime() << std::endl;
+
 }
 
 void TestLegendrePolynom()
 {
-	std::cout << "Legendre polynoms\n";
-	math::LegendrePolynom p1(3), 
-		p2(10), 
-		p3(15);
+	using namespace ball::math;
+
+	std::cout << "\n...Legendre polynoms tests...\n";
+
+	auto p1{ LegendrePolynomial(3) };
+	auto p2{ LegendrePolynomial(10) };
+	auto p3{ LegendrePolynomial(15) };
+	
 	double v1 = -0.5, v2 = 0.5;
+
 	std::cout << "P3 degree: " << p1.Degree() << "; P10 degree: " << p2.Degree() << std::endl;
+
 	std::cout << "P3(" << v1 << ") = " << p1(v1) << std::endl;
 	std::cout << "P10(" << v1 << ") = " << p2(v1) << std::endl;
 	std::cout << "P15(" << v1 << ") = " << p3(v1) << std::endl;
@@ -67,11 +87,14 @@ void TestLegendrePolynom()
 	std::cout << "P10(" << v2 << ") = " << p2(v2) << std::endl;
 	std::cout << "P15(" << v2 << ") = " << p3(v2) << std::endl;
 
-	std::cout << "Legendre functions\n";
-	math::LegendreFunction f1(3, 1),
-		f2(10, 5),
-		f3(15, 0),
-		f4(3, 2);
+	std::cout << "...Legendre functions tests...\n";
+
+	auto f1{ LegendreFunction(3, 1) };
+	auto f2{ LegendreFunction(10, 5) };
+	auto f3{ LegendreFunction(15, 0) };
+	auto f4{ LegendreFunction(3, 2) };
+	auto f5{ LegendreFunction(4, 4) };
+
 	std::cout << "P3_1(" << v1 << ") = " << f1(v1) << std::endl;
 	std::cout << "P10_5(" << v1 << ") = " << f2(v1) << std::endl;
 	std::cout << "P15_0(" << v1 << ") = " << f3(v1) << std::endl;
@@ -80,27 +103,26 @@ void TestLegendrePolynom()
 	std::cout << "P10_5(" << v2 << ") = " << f2(v2) << std::endl;
 	std::cout << "P15_0(" << v2 << ") = " << f3(v2) << std::endl;
 	std::cout << "P3_2(" << v2 << ") = " << f4(v2) << std::endl;
-}
-
-void TestFactorial()
-{
-	std::ofstream fout("factorials.txt");
-	for (size_t i = 21; i <= 30; ++i)
-		fout << i << " : " << math::Factorial(i) << std::endl;
-	fout.close();
+	std::cout << "P4_4(" << v2 << ") = " << f5(v2) << std::endl;
 }
 
 void TestMatrix()
 {
+	using namespace ball::math;
+
+	std::cout << "\n...Matrix tests...\n";
+
 	const double a[3]{ 0.212340538, 0.590533136, 0.911412040 };
-	math::Matrix3x3 m1, m2(1, 2, 3, 1, 2, 4, 3, 2, 1),
-		m3 = math::Matrix3x3::Inv(m2),
-		m4 = math::Matrix3x3::Eye(),
-		m5 = math::Matrix3x3(
-			a[0], a[0] * a[0], a[0] * a[0] * a[0],
-			a[1], a[1] * a[1], a[1] * a[1] * a[1],
-			a[2], a[2] * a[2], a[2] * a[2] * a[2]),
-		m6 = math::Matrix3x3::Inv(m5);
+	auto m1{ Matrix3x3() };
+	auto m2{ Matrix3x3(1, 2, 3, 1, 2, 4, 3, 2, 1) };
+	auto m3{ Matrix3x3::Inv(m2) };
+	auto m4{ Matrix3x3::Eye() };
+	auto m5{ Matrix3x3(
+		a[0], a[0] * a[0], a[0] * a[0] * a[0],
+		a[1], a[1] * a[1], a[1] * a[1] * a[1],
+		a[2], a[2] * a[2], a[2] * a[2] * a[2]) };
+	auto m6{ Matrix3x3::Inv(m5) };
+	
 	std::cout << "M1: " << m1 << std::endl;
 	std::cout << "M2: " << m2 << std::endl;
 	std::cout << "M4: " << m4 << std::endl;

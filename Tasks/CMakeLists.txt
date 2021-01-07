@@ -7,7 +7,6 @@ include_directories(
 	${CMAKE_SOURCE_DIR}/General/include)
 add_library(
 	Tasks
-	src/AstroValues.cpp
 	src/GeoPotential.cpp
 	src/StaticAtmosphere81.cpp
 )

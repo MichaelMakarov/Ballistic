@@ -39,23 +39,22 @@ void TestConversions()
 void TestGeoPotential()
 {
 	GeoPotential gp(
-		std::move(std::unique_ptr<PotentialEGM96>{ new PotentialEGM96() }),
-		6378137,
-		3.98600441800E+14,
-		/*egm96::R,
-		egm96::Mu,*/
+		std::move(std::unique_ptr<EGM96>{ new EGM96() }),
 		16);
 	geometry::RBL p(6378137.000 + 5.63755000000E+06, 0.0, math::DegToRad(349.45));
 	double a = gp(p);// / c.R;
 	std::cout << std::setprecision(16);
 	std::cout << "The point is " << p << std::endl;
 	std::cout << "The potential is " << a << std::endl;
+	gp = GeoPotential(std::move(std::unique_ptr<EGM96>{ new EGM96() }), 1);
+
 }
 
 void TestAtmosphere()
 {
 	geometry::XYZ p(-4688980.289, -11060428.914, 238914.750);
 	std::cout << "Position: " << p << std::endl;
-	StaticAtmosphere81 sma81;
+	auto gm = EGM96();
+	auto sma81 = StaticAtmosphere81(gm.R(), gm.Fl());
 	std::cout << "Static atmosphere 1981: rho = " << sma81.Density(p, ball::time::JD2000) << std::endl;;
 }

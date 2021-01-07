@@ -1,29 +1,46 @@
 #pragma once
 #include "Integrator.h"
 #include <vector>
+#include <list>
 
 namespace ball
 {
-	class MultiStepIntegrator : public Integrator
+	template<class ... ArgType>
+	class MultiStepIntegrator : public Integrator<ArgType ...>
 	{
 	protected:
-		std::vector<std::pair<types::PV, double>> _xList;
+		std::pair<types::PV, time::JD>* _pData;
 
 	private:
 		const size_t _degree;
 
 	public:
-		MultiStepIntegrator(const size_t degree) : Integrator(), _degree(degree) {}
+		explicit MultiStepIntegrator(const size_t degree = 1) : 
+			Integrator(), 
+			_degree(degree), 
+			_pData{ nullptr }
+		{}
 		~MultiStepIntegrator() {}
 
-		bool Initialize(const std::initializer_list<std::pair<types::PV, double>> xList)
+		template<class Iterator>
+		void Initialize(Iterator iterData)
 		{
-			if (xList.size() == _degree)
-			{
-				_xList = xList;
-				return true;
-			}
-			return false;
+			_pData = iterData._Ptr;
+		}
+
+		void Initialize(const std::vector<std::pair<types::PV, time::JD>>::iterator iter)
+		{
+			_pData = iter._Ptr;
+		}
+		void Initialize(const std::initializer_list<std::pair<types::PV, time::JD>>::iterator iter)
+		{
+			_pData = iter;
+		}
+		
+
+		void Initialize(std::pair<types::PV, time::JD>* pData)
+		{
+			_pData = pData;
 		}
 
 		size_t Degree() const

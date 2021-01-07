@@ -60,16 +60,17 @@ namespace ball
             return true;
         }
 
-        types::OsculParams TleFormat::ToOsculParams() const
+        types::OsculParams TleFormat::ToOsculParams(const double mu) const
         {
             time::JD jd = time::JD2000 + EpochTime;
             for (size_t i = 0; i < EpochYear; ++i)
                 if (i % 4 == 0) jd.AddDays(366);
                 else jd.AddDays(365);
+            const double a = tasks::SemimajorAxisFromPeriod(
+                static_cast<double>(time::SEC_PER_DAY) / Frequency,
+                mu);
             return types::OsculParams(
-                tasks::SemimajorAxisFromPeriod(
-                    static_cast<double>(time::SEC_PER_DAY) / Frequency, 
-                    tasks::pz90::Mu),
+                a,
                 Eccentricity,
                 Inclination,
                 PeriapsArg,

@@ -19,9 +19,12 @@ namespace ball
 
         inline constexpr double DAYS_PER_YEAR{ 365 };
 
-        inline constexpr double JD1900{ 2411541.0 };
+        // Julian date for 1st January 1900, 12 am
+        inline constexpr double JD1900{ 2415021.0 };
+        // Julian date for 1st January 2000, 12 am
         inline constexpr double JD2000{ 2451545.0 };
-
+        // Julian date for 30th December 1899, 12 am
+        inline constexpr double JD1899{ 2415019.0 };
     }
 
     namespace math
