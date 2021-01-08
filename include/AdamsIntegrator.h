@@ -1,5 +1,5 @@
 #pragma once
-#include "MultiStepIntegrator.h"
+#include "Integrators.h"
 
 namespace ball
 {
@@ -34,10 +34,12 @@ namespace ball
 		AdamsIntegrator() : MultiStepIntegrator(8) {}
 		~AdamsIntegrator() {}
 
-		types::PV Integrate(const double step, const ArgType ... args) const override
+		geometry::PV Integrate(const double step, const ArgType ... args) const override
 		{
-			types::PV x;
-			time::JD t;
+			using namespace time;
+			using namespace geometry;
+			PV x;
+			JD t;
 			std::pair<PV, JD>* pData = _pData;
 			// prediction
 			for (size_t i = 0; i < 8; ++i)

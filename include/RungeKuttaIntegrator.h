@@ -1,5 +1,5 @@
 #pragma once
-#include "SingleStepIntegrator.h"
+#include "Integrators.h"
 
 namespace ball
 {
@@ -10,7 +10,7 @@ namespace ball
 		RungeKuttaIntegrator() {}
 		~RungeKuttaIntegrator() {}
 
-		types::PV Integrate(const double step, const ArgType ... args) const override
+		geometry::PV Integrate(const double step, const ArgType ... args) const override
 		{
 			const double 	step_2 = 0.5 * step,
 							step_6 = step / 6;

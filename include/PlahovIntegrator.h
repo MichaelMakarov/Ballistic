@@ -1,6 +1,6 @@
 #pragma once
-#include "SingleStepIntegrator.h"
-#include "Matrix3x3.h"
+#include "Integrators.h"
+#include "Mathematics.h"
 #include <algorithm>
 
 namespace ball
@@ -24,13 +24,13 @@ namespace ball
 
 		types::PV Integrate(const double step, const ArgType ... args) const override
 		{
-			const size_t n = 3;
-			double h = step,
-				d = 10.0,
-				eps = 1e-2;
+			const size_t n{ 3 };
+			const double h{ step };
+			double d{ 10.0 };
+			const double eps{ 1e-2 };
 			types::PV fx0 = Func(_x0, _t0, args ...), fx[3];
 			math::Matrix3x3 pqr, ref;
-			types::PV xi;
+			geometry::PV xi;
 			while (d > eps)
 			{
 				ref = pqr;
@@ -62,7 +62,7 @@ namespace ball
 					std::abs((pqr[8] - ref[8]) / pqr[8])
 					});
 			}
-			return types::PV(
+			return geometry::PV(
 				_x0.P1 + h * (_x0.V1 + h * (0.5 * fx0.V1 + 1.0 / 6 * pqr(0, 0) + 1.0 / 12 * pqr(1, 0) + 0.05 * pqr(2, 0))),
 				_x0.P2 + h * (_x0.V2 + h * (0.5 * fx0.V2 + 1.0 / 6 * pqr(0, 1) + 1.0 / 12 * pqr(1, 1) + 0.05 * pqr(2, 1))),
 				_x0.P3 + h * (_x0.V3 + h * (0.5 * fx0.V3 + 1.0 / 6 * pqr(0, 2) + 1.0 / 12 * pqr(1, 2) + 0.05 * pqr(2, 2))),

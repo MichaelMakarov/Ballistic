@@ -1,16 +1,16 @@
 ﻿#pragma once
-#include "AtmosphereModel.h"
+#include "Atmosphere.h"
 #include "GeoPotential.h"
-#include "SingleStepIntegrator.h"
-#include "MultiStepIntegrator.h"
-#include "StateTypes.h"
-#include "Constants.h"
+#include "Integrators.h"
+#include "Structures.h"
+#include "GeneralConstants.h"
 
 namespace ball
 {
-	using namespace tasks;
-	using namespace types;
+	using namespace space;
+	using namespace geometry;
 	using namespace time;
+
 	class Ballistic
 	{
 	private:
@@ -49,7 +49,7 @@ namespace ball
 		Ballistic& operator = (const Ballistic& ball) = delete;
 
 		void Run(
-			const StateParams& x0,
+			const State& x0,
 			const JD& tk,
 			const double startStep = 5.0,
 			const double continueStep = 30.0);
@@ -58,7 +58,6 @@ namespace ball
 		{
 			return _trajectory;
 		}
-
 
 		double MinHeight = 1e5, MaxHeight = 1e8;
 

@@ -1,7 +1,7 @@
 ﻿#include "Ballistic.h"
 #include "AdamsIntegrator.h"
 #include "RungeKuttaIntegrator.h"
-#include "AstroValues.h"
+#include "Conversions.h"
 
 namespace ball
 {
@@ -127,8 +127,8 @@ namespace ball
 	}
 
 	void Ballistic::Run(
-		const StateParams& x0,
-		const time::JD& tk,
+		const State& x0,
+		const JD& tk,
 		const double startStep,
 		const double continueStep)
 	{
@@ -147,7 +147,7 @@ namespace ball
 		_loops.resize(count);
 
 		_trajectory[0] = { x0.Vec, x0.T };
-		_loops[0] = x0.LoopN;
+		_loops[0] = x0.Loop;
 		// performing initial calculations
 		StartRun(startStep, continueStep, index);
 		// performing remaining calculations
