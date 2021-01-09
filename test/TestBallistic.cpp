@@ -5,6 +5,7 @@
 #include <iomanip>
 #include <fstream>
 #include <string>
+#include <future>
 
 using namespace ball;
 using namespace space;
@@ -84,9 +85,9 @@ void TestIntegrator()
 
 }
 
-void TestBallistic()
+void TestBallistic1()
 {
-	std::cout << "\n...Ballistic test...\n";
+	std::cout << "\n...Test ballistic 1...\n";
 
 	auto list =	{
 		State(
@@ -108,9 +109,33 @@ void TestBallistic()
 			JD(DateTime(2015, 6, 7, 10, 20, 1, 626)),
 			1)
 	};
-	auto pGravity{ std::make_unique<PZ90>() };
-	auto pAtmosphere{ std::make_unique<StaticAtmosphere81>(pGravity->R(), pGravity->Fl()) };
-	auto ball = Ballistic(std::move(pGravity), std::move(pAtmosphere), 16);
+	auto pGravity{ std::make_shared<PZ90>() };
+	auto pAtmosphere{ std::make_shared<StaticAtmosphere81>(pGravity->R(), pGravity->Fl()) };
+	auto index{ 1 };
+	auto calculate = [pGravity, pAtmosphere](const State& x, const double dt, const size_t index)
+	{
+		auto ball = Ballistic(pGravity, pAtmosphere, 16);
+		auto pBall = &ball;
+		auto printFile = [pBall](const std::string& filename) {
+			auto fout = std::ofstream(filename);
+			fout << std::setprecision(16);
+			for (auto& x : pBall->Trajectory())
+				fout << x.second.ToDateTime() << "; " << x.first << std::endl;
+			fout.close();
+		};
+		auto filename = "ball test mma version " + std::to_string(index) + ".txt";
+		try {
+			ball.Run(x, x.T + dt);
+			std::cout << index << " Successfully calculated!\n";
+			printFile(filename);
+		}
+		catch (std::exception& ex)
+		{
+			std::cout << index << " An error occured! " << ex.what() << "\n";
+			printFile(filename);
+		}
+	};
+	/*auto ball = Ballistic(pGravity, pAtmosphere, 16);
 	auto pBall = &ball;
 	auto printFile = [pBall](const std::string& filename) {
 		auto fout = std::ofstream(filename);
@@ -118,11 +143,12 @@ void TestBallistic()
 		for (auto& x : pBall->Trajectory())
 			fout << x.second.ToDateTime() << "; " << x.first << std::endl;
 		fout.close();
-	};
-	auto index{ 1 };
+	};*/
 	for (auto& x : list)
 	{
-		std::cout << index << std::ends;
+		auto future = std::async(std::launch::async, calculate, x, 1.0, index++);
+		//future.get();
+		/*std::cout << index << std::ends;
 		auto filename = "ball test mma version " + std::to_string(index++) + ".txt";
 		try {
 			ball.Run(x, x.T + 1.0);
@@ -134,7 +160,56 @@ void TestBallistic()
 			std::cout << "An error occured !" << ex.what() << "\n";
 			printFile(filename);
 		}
-		std::cout << std::endl;
+		std::cout << std::endl;*/
 	}
 	
+}
+
+void TestBallistic2()
+{
+	std::cout << "\n...Test ballistic 2...\n";
+	std::shared_ptr<State> ptr;
+	std::cout << std::setprecision(15);
+
+	auto x0{ State(
+		1655697.1365, -3861686.2435, 5064524.7827,
+		3705.8211976, -4786.9125982, -4812.0157646,
+		0.018059454,
+		JD(42187, 0.321120925924333) + JD1899,
+		1) };
+	auto pGravity{ std::make_shared<PZ90>() };
+	auto pAtmosphere{ std::make_shared<StaticAtmosphere81>(pGravity->R(), pGravity->Fl()) };
+	auto ball = Ballistic(pGravity, pAtmosphere, 16);
+	std::cout << "initial point:\n";
+	std::cout << "T: " << x0.T.ToDateTime() << "; x: " <<
+		x0.Vec << "; s = " << x0.Sb << "; loop = " << x0.Loop << std::endl;
+	try {
+		ball.Run(x0, x0.T + 0.5);
+		State x;
+		JD list[] { x0.T, x0.T, x0.T, x0.T };
+		int deltas[] { 17, 300, 3600, 86330 };
+		for (size_t i = 0; i < sizeof(deltas) / sizeof(deltas[0]); ++i)
+		{
+			list[i].AddSeconds(deltas[i]);
+			if (!ball.GetPoint(list[i], x))
+			{
+				std::cout << "Failed to calculate the point for time: " << list[i].ToDateTime() << std::endl;
+			}
+			else {
+				std::cout << "T: " << list[i].ToDateTime() << "; x: " <<
+					x.Vec << "; s = " << x.Sb << "; loop = " << x.Loop << std::endl;
+			}
+		}
+		
+	}
+	catch (std::exception& ex)
+	{
+		std::cout << "An error occured during the calculation!\n";
+	}
+}
+
+void TestBallistic()
+{
+	TestBallistic1();
+	TestBallistic2();
 }

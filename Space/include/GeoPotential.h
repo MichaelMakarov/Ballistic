@@ -22,14 +22,12 @@ namespace ball
 			// pPotential - a pointer to the Earth's gravity model.
 			// harmonics - a number of spherical functions in the gravity model to consider.
 			GeoPotential(
-				const std::unique_ptr<IGravity> pPotential,
+				const std::shared_ptr<IGravity> pPotential,
 				const size_t harmonics);
 			GeoPotential(const GeoPotential& gp) = delete;
-			GeoPotential(GeoPotential&& gp) = delete;
 			~GeoPotential() {}
 
 			GeoPotential& operator = (const GeoPotential& gp) = delete;
-			GeoPotential& operator = (GeoPotential&& gp) = delete;
 
 			// Calculating the value of Earth's potential
 			double operator () (const geometry::RBL& coordinates) const;

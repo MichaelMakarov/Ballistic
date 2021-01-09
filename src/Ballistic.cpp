@@ -2,6 +2,7 @@
 #include "AdamsIntegrator.h"
 #include "RungeKuttaIntegrator.h"
 #include "Conversions.h"
+#include <memory>
 
 namespace ball
 {
@@ -16,7 +17,7 @@ namespace ball
 		if (h < MinHeight || h > MaxHeight)
 			throw std::runtime_error("Height is out of bounds!");
 		// geopotential aceleration with a centrifugal and a coriolis force
-		auto xyzAcPot{ _pGeoPotential->Acceleration(xyzPos) };
+		auto xyzAcPot{ _geoPotential.Acceleration(xyzPos) };
 		// atmosphere aceleration a = v * s * rho, 
 		// s - a ballistic coefficient,
 		// v - a velocity of the vehicle,
@@ -80,17 +81,17 @@ namespace ball
 	}
 
 	Ballistic::Ballistic(
-		std::unique_ptr<IGravity> pGravity,
-		std::unique_ptr<IAtmosphere> pAtmosphere,
-		const size_t harmonics)
+		const std::shared_ptr<IGravity> pGravity,
+		const std::shared_ptr<IAtmosphere> pAtmosphere,
+		const size_t harmonics) :
+		_geoPotential{ GeoPotential(pGravity, harmonics) },
+		_pAtmosphere{ pAtmosphere },
+		_pSingleStepInt{ std::make_unique<RungeKuttaIntegrator<double>>() },
+		_pMultiStepInt{ std::make_unique<AdamsIntegrator<double>>() },
+		_eR{ pGravity->R() },
+		_eFl{ pGravity->Fl() },
+		_eW{ pGravity->W() }
 	{
-		_eR = pGravity->R();
-		_eFl = pGravity->Fl();
-		_eW = pGravity->W();
-		_pGeoPotential = { std::make_unique<GeoPotential>(std::move(pGravity), harmonics) };
-		_pAtmosphere = std::move(pAtmosphere);
-		_pMultiStepInt = { std::make_unique<AdamsIntegrator<double>>() };
-		_pSingleStepInt = { std::make_unique<RungeKuttaIntegrator<double>>() };
 		auto pFunc = &Ballistic::Function;
 		auto pThis = this;
 		auto func = [pFunc, pThis](const PV& vec, const JD& time, const double sb) {
@@ -101,22 +102,19 @@ namespace ball
 	}
 
 	Ballistic::Ballistic(
-		std::unique_ptr<IGravity> pGravity,
-		std::unique_ptr<IAtmosphere> pAtmosphere,
+		const std::shared_ptr<IGravity> pGravity,
+		const std::shared_ptr<IAtmosphere> pAtmosphere,
 		std::unique_ptr<SingleStepIntegrator<double>> pSingleStepInt,
 		std::unique_ptr<MultiStepIntegrator<double>> pMultiStepInt,
-		const size_t harmonics)
+		const size_t harmonics) : 
+		_geoPotential{ GeoPotential(pGravity, harmonics) },
+		_pAtmosphere{ pAtmosphere },
+		_pSingleStepInt{ std::move(pSingleStepInt) },
+		_pMultiStepInt{ std::move(pMultiStepInt) },
+		_eR{ pGravity->R() },
+		_eFl{ pGravity->Fl() },
+		_eW{ pGravity->W() }
 	{
-		// Earth's constants
-		_eR = pGravity->R();
-		_eFl = pGravity->Fl();
-		_eW = pGravity->W();
-		// initializing the physical objects 
-		_pGeoPotential = { std::make_unique<GeoPotential>(std::move(pGravity), harmonics) };
-		_pAtmosphere = std::move(pAtmosphere);
-		// initializing the integrators
-		_pSingleStepInt = std::move(pSingleStepInt);
-		_pMultiStepInt = std::move(pMultiStepInt);
 		auto pFunc = &Ballistic::Function;
 		auto pThis = this;
 		auto func = [pFunc, pThis](const PV& vec, const JD& time, const double sb) {
@@ -139,10 +137,10 @@ namespace ball
 			throw std::invalid_argument("Invalid start step > continue step!");
 		if (tk <= x0.T)
 			throw std::invalid_argument("Invalid tk < tn!");
-		_step = continueStep;
+		_deltaTime = continueStep / SEC_PER_DAY;
 		_sBall = x0.Sb;
 		size_t index = _pMultiStepInt->Degree() - 1;
-		size_t count = static_cast<size_t>((tk - x0.T) / _step * time::SEC_PER_DAY) + 1;
+		size_t count = static_cast<size_t>((tk - x0.T) / _deltaTime) + 1;
 		_trajectory.resize(count);
 		_loops.resize(count);
 
@@ -152,6 +150,48 @@ namespace ball
 		StartRun(startStep, continueStep, index);
 		// performing remaining calculations
 		ContinueRun(continueStep, index);
+	}
+
+	bool Ballistic::GetPoint(const JD& time, State& x) const
+	{
+		using long_t = long long;
+		auto count{ _trajectory.size() };
+		if (count < 4) return false;
+		auto index = static_cast<size_t>((time - _trajectory[0].second) / _deltaTime);
+		if (index < count)
+		{
+			// checking the value sign of the z coordinate of the nearest point
+			bool intersection = std::signbit(_trajectory[index].first.P3) == true;
+			const size_t loop{ _loops[index] };
+			// get the index of the first point for the interpolation
+			index = static_cast<size_t>(
+				std::max(
+					long_t(0), 
+					std::min(static_cast<long_t>(count) - 4, static_cast<long_t>(index) - 2)
+				));
+			// hence the interpolation performing
+			// P(t) = sum{n = 0..4} (mult{m = 0..4, m != n} (t - t_m)/(t_n - t_m)) x_n
+			PV result;
+			double mult;
+			size_t indexn{ index };
+			for (size_t n = 0; n < 4; ++n)
+			{
+				mult = 1.0;
+				for (size_t m = 0; m < 4; ++m)
+				{
+					if (m != n)
+					{
+						mult *= (time - _trajectory[index + m].second) / 
+							(_trajectory[indexn].second - _trajectory[index + m].second);
+					}
+				}
+				result += mult * _trajectory[indexn++].first;
+			}
+			intersection = intersection && std::signbit(result.P3) == false;
+			x = State(result, _sBall, time, loop + intersection ? 1 : 0);
+			return true;
+		}
+		return false;
 	}
 }
 

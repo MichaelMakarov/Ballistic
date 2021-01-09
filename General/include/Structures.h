@@ -7,7 +7,7 @@ namespace ball
 {
 	namespace geometry
 	{
-        // Struct represents the movement od the center od mass.
+        // Struct represents the movement of the center of mass.
         // Contains major parameters of the movement.
 		struct State
 		{

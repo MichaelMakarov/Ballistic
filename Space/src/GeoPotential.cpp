@@ -6,7 +6,7 @@ namespace ball
 	namespace space
 	{
 		GeoPotential::GeoPotential(
-			const std::unique_ptr<IGravity> pGravity,
+			const std::shared_ptr<IGravity> pGravity,
 			const size_t count)
 		{
 			_count = count > pGravity->Count() ? pGravity->Count() : count;
@@ -61,13 +61,14 @@ namespace ball
 			const double sinphi{ std::sin(rblCoord.B) };
 			const double cosphi{ std::cos(rblCoord.B) };
 			const double tgphi{ sinphi / cosphi };
+			const double r_2{ rblCoord.R * rblCoord.R };
+			const double mu_r_2{ _eMu / r_2 };
 			const double R_r{ _eR / rblCoord.R };
 			const double lambda{ rblCoord.L };
 			double mult{ R_r * R_r };
 
 			// the temporary constants
 
-			const double r_2{ rblCoord.R * rblCoord.R };
 			const double xy_2{ xyzCoord.X * xyzCoord.X + xyzCoord.Y * xyzCoord.Y };
 			const double xy{ std::sqrt(xy_2) };
 			const double rxy{ xy * r_2 };
@@ -121,14 +122,20 @@ namespace ball
 					rbldU_n.L += poly * ksc * m;
 					k++;
 				}
-				rbldU_n.R *= n + 1;
-				rbldU_sum += mult * rbldU_n;
+				/*rbldU_n.R *= n + 1;
+				rbldU_sum += mult * rbldU_n;*/
+				rbldU_sum.R += (n + 1) * mult * rbldU_n.R;
+				rbldU_sum.B += mult * rbldU_n.B;
+				rbldU_sum.L += mult * rbldU_n.L;
 				mult *= R_r;
 			}
 			rbldU_sum.L /= cosphi;
-			rbldU_sum *= _eMu / r_2;
+			/*rbldU_sum *= mu_r_2;*/
+			rbldU_sum.R *= mu_r_2;
+			rbldU_sum.B *= mu_r_2;
+			rbldU_sum.L *= mu_r_2;
 
-			auto centrPot{ XYZ(-_eMu / r_2 * xyzdR.X, -_eMu / r_2 * xyzdR.Y, -_eMu / r_2 * xyzdR.Z) };
+			auto centrPot{ XYZ(-mu_r_2 * xyzdR.X, -mu_r_2 * xyzdR.Y, -mu_r_2 * xyzdR.Z) };
 			auto harmPot = XYZ(
 				rbldU_sum.R * xyzdR.X + rbldU_sum.B * xyzdPhi.X + rbldU_sum.L * xyzdLambda.X,
 				rbldU_sum.R * xyzdR.Y + rbldU_sum.B * xyzdPhi.Y + rbldU_sum.L * xyzdLambda.Y,
