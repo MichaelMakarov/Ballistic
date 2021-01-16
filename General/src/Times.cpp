@@ -180,16 +180,16 @@ namespace ball
 		}
 		JD::JD(const DateTime& dt)
 		{
-			Date d = dt.GetDate();
-			Time t = dt.GetTime();
-			unsigned int a = (14 - d.GetMonth()) / 12,
-				y = 4800 + d.GetYear() - a,
-				m = d.GetMonth() + 12 * a - 3;
-			_day = d.GetDay() + (153 * m + 2) / 5 + 365 * y + y / 4 - y / 100 + y / 400 - 32045;
-			_time = (t.GetHour() + (t.GetMinute() + (t.GetSecond() + t.GetMillisecond() * 1e-3) / 60) / 60) / 24;
+			Date d = dt.get_date();
+			Time t = dt.get_time();
+			unsigned int a = (14 - d.get_month()) / 12,
+				y = 4800 + d.get_year() - a,
+				m = d.get_month() + 12 * a - 3;
+			_day = d.get_day() + (153 * m + 2) / 5 + 365 * y + y / 4 - y / 100 + y / 400 - 32045;
+			_time = (t.get_hour() + (t.get_minute() + (t.get_second() + t.get_millisecond() * 1e-3) / 60) / 60) / 24;
 		}
 
-		DateTime JD::ToDateTime() const
+		DateTime JD::to_datetime() const
 		{
 			size_t
 				a = _day + 32044,
@@ -212,7 +212,7 @@ namespace ball
 			return DateTime(year, month, day, hour, minute, second, millisec);
 		}
 
-		double JD::ToDouble() const
+		double JD::to_double() const
 		{
 			return _time + _day;
 		}
@@ -225,23 +225,23 @@ namespace ball
 			return *this;
 		}
 
-		void JD::AddDays(const int n)
+		void JD::add_days(const int n)
 		{
 			_day += n;
 		}
-		void JD::AddHours(const int n)
+		void JD::add_hours(const int n)
 		{
 			double day;
 			_time = std::modf(_time + n / HOURS_PER_DAY, &day);
 			_day += static_cast<size_t>(day);
 		}
-		void JD::AddMinutes(const int n)
+		void JD::add_minutes(const int n)
 		{
 			double day;
 			_time = std::modf(_time + n / MIN_PER_DAY, &day);
 			_day += static_cast<size_t>(day);
 		}
-		void JD::AddSeconds(const int n)
+		void JD::add_seconds(const int n)
 		{
 			double day;
 			_time = std::modf(_time + n / SEC_PER_DAY, &day);

@@ -18,7 +18,7 @@ namespace ball
 			{}
 			~XYZ() {}
 
-			double Length() const;
+			double length() const;
 
 			XYZ& operator += (const XYZ& v);
 			XYZ& operator -= (const XYZ& v);

@@ -10,34 +10,34 @@
 using namespace ball::geometry;
 using namespace ball::time;
 
-void TestDateTime();
-void TestLegendrePolynom();
-void TestMatrix();
-void TestTle();
+void test_datetime();
+void test_legendre();
+void test_matrix();
+void test_tle();
 
 int main()
 {
-	TestDateTime();
-	TestLegendrePolynom();
-	TestMatrix();
-	TestTle();
+	test_datetime();
+	test_legendre();
+	test_matrix();
+	test_tle();
 	return 0;
 }
 
-void TestTle()
+void test_tle()
 {
 	std::cout << "\n...Test Tle...\n";
 
 	auto fread = std::ifstream("TleFile.tle");
 	TLE tle1;
-	if (!LoadTle(fread, tle1))
+	if (!load_tle(fread, tle1))
 		std::cout << "Failed to load tle content from file!\n";
 	fread.close();
-	auto op = tle1.ToOscul(std::make_unique<ball::space::PZ90>()->Mu());
+	auto op = tle1.to_oscul(std::make_unique<ball::space::PZ90>()->Mu());
 	std::cout << op << std::endl;
 }
 
-void TestDateTime()
+void test_datetime()
 {
 	std::cout << "\n...Time tests...\n";
 
@@ -71,17 +71,17 @@ void TestDateTime()
 	std::cout << "JD5 = " << jd5 << std::endl;
 	std::cout << "JD6 = " << jd6 << std::endl;
 
-	std::cout << "JD0 to DateTime: " << jd0.ToDateTime() << std::endl;
-	std::cout << "JD1 to DateTime: " << jd1.ToDateTime() << std::endl;
-	std::cout << "JD2 to DateTime: " << jd2.ToDateTime() << std::endl;
-	std::cout << "JD3 to DateTime: " << jd3.ToDateTime() << std::endl;
-	std::cout << "JD4 to DateTime: " << jd4.ToDateTime() << std::endl;
-	std::cout << "JD5 to DateTime: " << jd5.ToDateTime() << std::endl;
-	std::cout << "JD6 to DateTime: " << jd6.ToDateTime() << std::endl;
+	std::cout << "JD0 to DateTime: " << jd0.to_datetime() << std::endl;
+	std::cout << "JD1 to DateTime: " << jd1.to_datetime() << std::endl;
+	std::cout << "JD2 to DateTime: " << jd2.to_datetime() << std::endl;
+	std::cout << "JD3 to DateTime: " << jd3.to_datetime() << std::endl;
+	std::cout << "JD4 to DateTime: " << jd4.to_datetime() << std::endl;
+	std::cout << "JD5 to DateTime: " << jd5.to_datetime() << std::endl;
+	std::cout << "JD6 to DateTime: " << jd6.to_datetime() << std::endl;
 
 }
 
-void TestLegendrePolynom()
+void test_legendre()
 {
 	using namespace ball::math;
 
@@ -93,7 +93,7 @@ void TestLegendrePolynom()
 	
 	double v1 = -0.5, v2 = 0.5;
 
-	std::cout << "P3 degree: " << p1.Degree() << "; P10 degree: " << p2.Degree() << std::endl;
+	std::cout << "P3 degree: " << p1.degree() << "; P10 degree: " << p2.degree() << std::endl;
 
 	std::cout << "P3(" << v1 << ") = " << p1(v1) << std::endl;
 	std::cout << "P10(" << v1 << ") = " << p2(v1) << std::endl;
@@ -121,7 +121,7 @@ void TestLegendrePolynom()
 	std::cout << "P4_4(" << v2 << ") = " << f5(v2) << std::endl;
 }
 
-void TestMatrix()
+void test_matrix()
 {
 	using namespace ball::math;
 
@@ -130,13 +130,13 @@ void TestMatrix()
 	const double a[3]{ 0.212340538, 0.590533136, 0.911412040 };
 	auto m1{ Matrix3x3() };
 	auto m2{ Matrix3x3(1, 2, 3, 1, 2, 4, 3, 2, 1) };
-	auto m3{ Matrix3x3::Inv(m2) };
-	auto m4{ Matrix3x3::Eye() };
+	auto m3{ Matrix3x3::inv(m2) };
+	auto m4{ Matrix3x3::eye() };
 	auto m5{ Matrix3x3(
 		a[0], a[0] * a[0], a[0] * a[0] * a[0],
 		a[1], a[1] * a[1], a[1] * a[1] * a[1],
 		a[2], a[2] * a[2], a[2] * a[2] * a[2]) };
-	auto m6{ Matrix3x3::Inv(m5) };
+	auto m6{ Matrix3x3::inv(m5) };
 	
 	std::cout << "M1: " << m1 << std::endl;
 	std::cout << "M2: " << m2 << std::endl;

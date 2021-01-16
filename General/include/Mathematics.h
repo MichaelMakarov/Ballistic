@@ -7,16 +7,16 @@ namespace ball
 {
 	namespace math
 	{
-        inline double DegToRad(const double degrees)
+        inline double deg_to_rad(const double degrees)
         {
             return degrees * PI / 180.0;
         }
-        inline double RadToDeg(const double radians)
+        inline double rad_to_deg(const double radians)
         {
             return radians * 180.0 / PI;
         }
 
-        long double Factorial(const size_t x);
+        long double factorial(const size_t x);
 
 		class LegendrePolynomial
 		{
@@ -25,7 +25,7 @@ namespace ball
 			std::vector<double> _values;
 
 		private:
-			void CreatePolynom(
+			void create(
 				std::vector<double>& values,
 				const size_t degree);
 
@@ -37,9 +37,9 @@ namespace ball
 				const bool normalized = false);
 			~LegendrePolynomial() {}
 
-			size_t Degree() const { return _degree; }
+			size_t degree() const { return _degree; }
 
-			bool Normalized() const { return _normalized; }
+			bool normalized() const { return _normalized; }
 
 			virtual double operator () (const double x) const;
 			double operator [] (const size_t i) const;
@@ -58,9 +58,9 @@ namespace ball
 				const bool normalized = false);
 			~LegendreFunction() {}
 
-			size_t Derivation() const { return _derivation; }
+			size_t derivation() const { return _derivation; }
 
-			bool Normalized() const { return _normalized; }
+			bool normalized() const { return _normalized; }
 
 			double operator () (const double x) const;
 		};
@@ -89,8 +89,8 @@ namespace ball
 			double operator () (const size_t m, const size_t n) const;
 			double operator [] (const size_t i) const;
 
-			static Matrix3x3 Inv(const Matrix3x3& m);
-			static Matrix3x3 Eye();
+			static Matrix3x3 inv(const Matrix3x3& m);
+			static Matrix3x3 eye();
 
 			Matrix3x3& operator += (const Matrix3x3& m);
 			Matrix3x3& operator -= (const Matrix3x3& m);

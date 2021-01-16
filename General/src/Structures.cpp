@@ -8,7 +8,7 @@ namespace ball
 	{
         std::ostream& operator<<(std::ostream& os, const State& p)
         {
-            os << "T: " << p.T.ToDateTime() << "; Vec: " << p.Vec << "; s = " <<
+            os << "T: " << p.T.to_datetime() << "; Vec: " << p.Vec << "; s = " <<
                 p.Sb << "; loop = " << p.Loop;
             return os;
         }
@@ -21,7 +21,7 @@ namespace ball
             return os;
         }
 
-        bool LoadTle(std::istream& stream, TLE& f)
+        bool load_tle(std::istream& stream, TLE& f)
         {
             if (!stream) return false;
             char buf[16] = {};
@@ -69,13 +69,13 @@ namespace ball
             return true;
         }
 
-        Oscul TLE::ToOscul(const double mu) const
+        Oscul TLE::to_oscul(const double mu) const
         {
             auto jd{ time::JD(time::JD2000 + EpochTime) };
             for (size_t i = 0; i < EpochYear; ++i)
-                if (i % 4 == 0) jd.AddDays(366);
-                else jd.AddDays(365);
-            const double a = space::SemimajorAxisFromPeriod(
+                if (i % 4 == 0) jd.add_days(366);
+                else jd.add_days(365);
+            const double a = space::semimajoraxis_from_period(
                 static_cast<double>(time::SEC_PER_DAY) / Frequency,
                 mu);
             return geometry::Oscul(

@@ -5,7 +5,7 @@ namespace ball
 {
     namespace geometry
     {
-        double XYZ::Length() const
+        double XYZ::length() const
         {
             return std::sqrt(X * X + Y * Y + Z * Z);
         }

@@ -122,9 +122,9 @@ namespace ball
             {}
             ~TLE() {}
 
-            geometry::Oscul ToOscul(const double mu) const;
+            geometry::Oscul to_oscul(const double mu) const;
         };
 
-        bool LoadTle(std::istream& fread, TLE& f);
+        bool load_tle(std::istream& fread, TLE& f);
 	}
 }

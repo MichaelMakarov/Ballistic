@@ -27,9 +27,9 @@ namespace ball
 				const unsigned short day);
 			~Date() noexcept {}
 
-			size_t GetYear() const { return _year; }
-			unsigned short GetMonth() const { return _month; }
-			unsigned short GetDay() const { return _day; }
+			size_t get_year() const { return _year; }
+			unsigned short get_month() const { return _month; }
+			unsigned short get_day() const { return _day; }
 
 			friend bool operator > (const Date& f, const Date& s);
 			friend bool operator < (const Date& f, const Date& s);
@@ -54,10 +54,10 @@ namespace ball
 				const unsigned short millisecond = 0);
 			~Time() {}
 
-			unsigned short GetHour() const { return _hour; }
-			unsigned short GetMinute() const { return _minute; }
-			unsigned short GetSecond() const { return _second; }
-			unsigned short GetMillisecond() const { return _millisec; }
+			unsigned short get_hour() const { return _hour; }
+			unsigned short get_minute() const { return _minute; }
+			unsigned short get_second() const { return _second; }
+			unsigned short get_millisecond() const { return _millisec; }
 
 			friend bool operator > (const Time& f, const Time& s);
 			friend bool operator < (const Time& f, const Time& s);
@@ -88,8 +88,8 @@ namespace ball
 				_time{ Time(hour, minute, second, millisecond) }
 			{}
 
-			const Date& GetDate() const { return _date; }
-			const Time& GetTime() const { return _time; }
+			const Date& get_date() const { return _date; }
+			const Time& get_time() const { return _time; }
 
 			friend bool operator > (const DateTime& f, const DateTime& s);
 			friend bool operator < (const DateTime& f, const DateTime& s);
@@ -115,13 +115,13 @@ namespace ball
 			
 			size_t JDN() const { return _day; }
 			size_t T() const { return _time; }
-			DateTime ToDateTime() const;
-			double ToDouble() const;
+			DateTime to_datetime() const;
+			double to_double() const;
 
-			void AddDays(const int n);
-			void AddHours(const int n);
-			void AddMinutes(const int n);
-			void AddSeconds(const int n);
+			void add_days(const int n);
+			void add_hours(const int n);
+			void add_minutes(const int n);
+			void add_seconds(const int n);
 
 			friend JD operator + (const JD& jd, const double dt);
 			friend JD operator - (const JD& jd, const double dt);

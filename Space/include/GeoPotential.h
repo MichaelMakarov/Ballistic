@@ -32,7 +32,7 @@ namespace ball
 			// Calculating the value of Earth's potential
 			double operator () (const geometry::RBL& coordinates) const;
 			// Calculating the acceleration by the potential
-			geometry::XYZ Acceleration(const geometry::XYZ& coordinates) const;
+			geometry::XYZ acceleration(const geometry::XYZ& coordinates) const;
 		};
 	}
 }

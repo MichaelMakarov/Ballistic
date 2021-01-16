@@ -26,11 +26,11 @@ namespace ball
 			0.14474e-4, 0.39247e-5, 1e-6
 		};
 
-		double StaticAtmosphere81::Density(
+		double StaticAtmosphere81::density(
 			const geometry::XYZ& position,
 			const time::JD& time) const
 		{
-			double h = GCS_HeightFromPosition(position, _eR, _eFl);
+			double h = GCS_height_from_position(position, _eR, _eFl);
 			size_t i;
 			for (i = 0; i < 9; ++i)
 				if (h < _height[i]) break;

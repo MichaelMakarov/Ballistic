@@ -5,8 +5,8 @@
 
 namespace ball
 {
-	template<class ... ArgType>
-	class PlahovIntegrator : public SingleStepIntegrator<ArgType ...>
+	/*template<class ... ArgType>
+	class PlahovIntegrator : public SingleStepIntegrator<PlahovIntegrator, ArgType ...>
 	{
 	private:
 		const double _a[3]{ 0.212340538, 0.590533136, 0.911412040 };
@@ -22,7 +22,7 @@ namespace ball
 		{}
 		~PlahovIntegrator() {}
 
-		types::PV Integrate(const double step, const ArgType ... args) const override
+		types::PV Integrate(const double step, const ArgType ... args) const
 		{
 			const size_t n{ 3 };
 			const double h{ step };
@@ -71,5 +71,5 @@ namespace ball
 				_x0.V3 + h * (fx0.V3 + 0.5 * pqr(0, 2) + 1.0 / 3 * pqr(1, 2) + 0.25 * pqr(2, 2))
 			);
 		}
-	};
+	};*/
 }

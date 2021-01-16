@@ -3,8 +3,7 @@
 
 namespace ball
 {
-	template<class ... ArgType>
-	class AdamsIntegrator : public MultiStepIntegrator<ArgType ...>
+	class AdamsIntegrator : public MultistepIntegrator<AdamsIntegrator>
 	{
 	private:
 		const double _b[8]
@@ -31,39 +30,37 @@ namespace ball
 		};
 
 	public:
-		AdamsIntegrator() : MultiStepIntegrator(8) {}
+		AdamsIntegrator() : MultistepIntegrator(8) {}
 		~AdamsIntegrator() {}
 
-		geometry::PV Integrate(const double step, const ArgType ... args) const override
+		void integrate(
+			std::pair<geometry::PV, time::JD>* pData,
+			const double step,
+			geometry::PV& xk,
+			time::JD& tk) const
 		{
 			using namespace time;
 			using namespace geometry;
-			PV x;
-			JD t;
-			std::pair<PV, JD>* pData = _pData;
-			// prediction
-			for (size_t i = 0; i < 8; ++i)
+
+			xk.P1 = xk.P2 = xk.P3 = xk.V1 = xk.V2 = xk.V3 = 0;
+			auto xt{ _b[0] * func(pData->first, pData->second) };
+			PV xb;
+			for (size_t i = 1; i < 8; ++i)
 			{
-				x += _b[i] * Func(pData->first, pData->second, args ...);
 				pData++;
+				xb = func(pData->first, pData->second);
+				// prediction
+				xt += _b[i] * xb;
+				// correction
+				xk += _c[i - 1] * xb;
 			}
-			x *= step;
-			pData--;
-			x += pData->first;
-			// correction
-			t = pData->second;
-			t.AddSeconds(static_cast<int>(step));
-			x = _c[7] * Func(x, t, args ...);
-			pData -= 6;
-			for (size_t i = 0; i < 7; ++i)
-			{
-				x += _c[i] * Func(pData->first, pData->second, args ...);
-				pData++;
-			}
-			x *= step;
-			pData--;
-			x += pData->first;
-			return x;
+			xt *= step;
+			xt += pData->first; 
+			tk = pData->second;
+			tk.add_seconds(static_cast<int>(step));
+			xk += _c[7] * func(xt, tk);
+			xk *= step;
+			xk += pData->first;
 		}
 	};
 }

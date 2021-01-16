@@ -4,7 +4,7 @@ namespace ball
 {
 	namespace math
 	{
-		void LegendrePolynomial::CreatePolynom(
+		void LegendrePolynomial::create(
 			std::vector<double>& values,
 			const size_t degree)
 		{
@@ -148,11 +148,11 @@ namespace ball
 		{
 			_normalized = normalized;
 			_degree = degree;
-			if (degree <= 17) CreatePolynom(_values, degree);
+			if (degree <= 17) create(_values, degree);
 			else {
 				std::vector<double> arr1, arr2;
-				CreatePolynom(arr1, 17);
-				CreatePolynom(arr2, 16);
+				create(arr1, 17);
+				create(arr2, 16);
 				_values.resize(degree + 1);
 				for (int n = 12; n < degree; ++n)
 				{
@@ -253,7 +253,7 @@ namespace ball
 			return _values[i];
 		}
 
-		Matrix3x3 Matrix3x3::Inv(const Matrix3x3& m)
+		Matrix3x3 Matrix3x3::inv(const Matrix3x3& m)
 		{
 			double det = m.Det();
 			if (std::abs(det) > 1e-16)
@@ -271,7 +271,7 @@ namespace ball
 			throw std::runtime_error("Degenerate matrix!");
 		}
 
-		Matrix3x3 Matrix3x3::Eye()
+		Matrix3x3 Matrix3x3::eye()
 		{
 			return Matrix3x3(1, 0, 0, 0, 1, 0, 0, 0, 1);
 		}
@@ -409,7 +409,7 @@ namespace ball
 			return is;
 		}
 
-        long double Factorial(const size_t x)
+        long double factorial(const size_t x)
         {
             static const long double values[41]
             {

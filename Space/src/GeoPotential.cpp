@@ -50,87 +50,106 @@ namespace ball
 			return _eMu / coordinates.R * result;
 		}
 
-		geometry::XYZ GeoPotential::Acceleration(const geometry::XYZ& xyzCoord) const
+		double legendre_from_previous(const double pnm_1, const double pnm_2, const double n, const double m, const double x)
+		{
+			const double c{ std::sqrt((2.0 * n + 1) / ((n - m) * (n + m))) };
+			return c * (std::sqrt(2 * n - 1) * x * pnm_1 - std::sqrt((n - 1 - m) * (n - 1 + m) / (2.0 * n - 3)) * pnm_2);
+		}
+		double legendre_derivative(const double pnm_1, const double pnm_2, const double n, const double m, const double x)
+		{
+			const double c{ 1 / std::sqrt((n + m) * (n + 1 - m)) };
+			const double k = m == 2 ? 2 : 1;
+			return c * (2 * (m - 1) * x * pnm_1 - std::sqrt(k * (n + 2 - m) * (n + m - 1)) * pnm_2);
+
+		}
+
+		geometry::XYZ GeoPotential::acceleration(const geometry::XYZ& xyzCoord) const
 		{
 			using namespace geometry;
 
-			const auto rblCoord{ GCS_OrthoToSpher(xyzCoord) };
-
 			// usefull constants related to current position
 
-			const double sinphi{ std::sin(rblCoord.B) };
-			const double cosphi{ std::cos(rblCoord.B) };
+			const double r{ xyzCoord.length() };
+			const double xy{ std::sqrt(xyzCoord.X * xyzCoord.X + xyzCoord.Y * xyzCoord.Y) };
+			const double sinphi{ xyzCoord.Z / r };
+			const double cosphi{ xy / r };
 			const double tgphi{ sinphi / cosphi };
-			const double r_2{ rblCoord.R * rblCoord.R };
-			const double mu_r_2{ _eMu / r_2 };
-			const double R_r{ _eR / rblCoord.R };
-			const double lambda{ rblCoord.L };
+			const double coslambda{ xyzCoord.X / xy };
+			const double sinlambda{ xyzCoord.Y / xy };
+			const double mu_r_2{ _eMu / r /r };
+			const double R_r{ _eR / r };
 			double mult{ R_r * R_r };
-
-			// the temporary constants
-
-			const double xy_2{ xyzCoord.X * xyzCoord.X + xyzCoord.Y * xyzCoord.Y };
-			const double xy{ std::sqrt(xy_2) };
-			const double rxy{ xy * r_2 };
+			const double zxyr{ xyzCoord.Z / xy / r };
 
 			// the derivatives
 
-			const auto xyzdR{ xyzCoord / rblCoord.R };
+			const auto xyzdR{ xyzCoord / r };
 			const auto xyzdPhi{
 				XYZ(
-					-xyzCoord.X * xyzCoord.Z / xy / rblCoord.R,
-					-xyzCoord.Y * xyzCoord.Z / xy / rblCoord.R,
-					xy / rblCoord.R)
+					-xyzCoord.X * zxyr,
+					-xyzCoord.Y * zxyr,
+					xy / r)
 			};
 			const auto xyzdLambda{ XYZ(-xyzCoord.Y / xy, xyzCoord.X / xy, 0) };
-			/*const auto xyzdPhi{
-				XYZ(
-					-xyzCoord.X * xyzCoord.Z / rxy,
-					-xyzCoord.Y * xyzCoord.Z / rxy,
-					std::sqrt(xy_2) / r_2)
-			};
-			const auto xyzdLambda{ XYZ(-xyzCoord.Y / xy_2, xyzCoord.X / xy_2, 0) };*/
-			RBL rbldU_n, rbldU_sum;
-			double dPoly;
 
 			// the temporary values
 
 			size_t k{ 3 };
-			double poly;
+			double poly, dpoly;
 			double kcs, ksc;
-			auto cs{ std::vector<std::pair<double, double>>(_count + 1) };
+			RBL rbldU_n, rbldU_sum;
+
 			auto delta = [](const size_t m) { return m == 0 ? 0.5 : 1.0; };
 
-			for (size_t i = 0; i <= _count; ++i)
-				cs[i] = { std::cos(i * lambda), std::sin(i * lambda) };
+			// cosines and sines
+			auto cs{ std::vector<std::pair<double, double>>(_count + 1) };
+			cs[0] = { 1, 0 };
+			//cs[1] = { coslambda, sinlambda };
+			for (size_t i = 1; i <= _count; ++i)
+				cs[i] = {
+					cs[i - 1].first * coslambda - cs[i - 1].second * sinlambda,
+					cs[i - 1].second * coslambda + cs[i - 1].first * sinlambda 
+				};
+			// legendre functions
+			auto pnm{ std::vector<double>(_harmonics.size()) };
+			pnm[0] = 1;
+			pnm[1] = sinphi * std::sqrt(3);
+			pnm[2] = cosphi * std::sqrt(3);
+			for (size_t n = 2; n <= _count; ++n)
+			{
+				for (size_t m = 0; m < n; ++m)
+				{
+					pnm[k] = std::sqrt(2 * n - 1) * sinphi * pnm[k - n] - std::sqrt((n - 1 - m) * (n - 1 + m) / (2.0 * n - 3)) * pnm[(k + 1) - n - n];
+					pnm[k++] *= std::sqrt((2.0 * n + 1) / ((n - m) * (n + m)));
+				}
+				pnm[k++] = std::sqrt(1 + 0.5 / n) * cosphi * pnm[k - n - 1];
+			}
+			// calculating the accelerations
+			k = 3;
 			for (size_t n = 2; n <= _count; ++n)
 			{
 				rbldU_n.B = rbldU_n.L = rbldU_n.R = 0.0;
 				for (size_t m = 0; m <= n; ++m)
 				{
 					// current Legendre function
-					poly = _functions[k](sinphi);
+					poly = pnm[k];
 					// a derivative of the current Legendre function
-					dPoly = -poly * m * tgphi + (m == n ? 0 : _functions[k + 1](sinphi) * 
-								std::sqrt((n - m) * (n + m + 1) * delta(m)));
+					dpoly = -poly * m * tgphi + (m == n ? 0 : pnm[k + 1] * std::sqrt((n - m) * (n + m + 1) * delta(m)));
 					// Cnm * cos(m * L) + Snm * sin(m * L)
 					kcs = _harmonics[k].first * cs[m].first + _harmonics[k].second * cs[m].second;
 					// Snm * cos(m * L) - Cnm * sin(m * L)
 					ksc = _harmonics[k].second * cs[m].first - _harmonics[k].first * cs[m].second;
 					rbldU_n.R -= poly * kcs;
-					rbldU_n.B += dPoly * kcs;
+					rbldU_n.B += dpoly * kcs;
 					rbldU_n.L += poly * ksc * m;
 					k++;
 				}
-				/*rbldU_n.R *= n + 1;
-				rbldU_sum += mult * rbldU_n;*/
 				rbldU_sum.R += (n + 1) * mult * rbldU_n.R;
 				rbldU_sum.B += mult * rbldU_n.B;
 				rbldU_sum.L += mult * rbldU_n.L;
 				mult *= R_r;
 			}
 			rbldU_sum.L /= cosphi;
-			/*rbldU_sum *= mu_r_2;*/
 			rbldU_sum.R *= mu_r_2;
 			rbldU_sum.B *= mu_r_2;
 			rbldU_sum.L *= mu_r_2;

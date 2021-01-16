@@ -6,21 +6,23 @@
 #include <fstream>
 #include <string>
 #include <future>
+#include <AdamsIntegrator.h>
+#include <RungeKuttaIntegrator.h>
 
 using namespace ball;
 using namespace space;
 using namespace geometry;
 
-void TestIntegrator();
-void TestBallistic();
+void test_integrator();
+void test_ballistic();
 
 int main()
 {
-	TestBallistic();
+	test_ballistic();
 	return 0;
 }
 
-void TestIntegrator()
+void test_integrator()
 {
 	std::cout << "\n...Test integrators...\n";
 
@@ -119,8 +121,8 @@ void TestBallistic1()
 		auto printFile = [pBall](const std::string& filename) {
 			auto fout = std::ofstream(filename);
 			fout << std::setprecision(16);
-			for (auto& x : pBall->Trajectory())
-				fout << x.second.ToDateTime() << "; " << x.first << std::endl;
+			for (auto& x : pBall->trajectory())
+				fout << x.second.to_datetime() << "; " << x.first << std::endl;
 			fout.close();
 		};
 		auto filename = "ball test mma version " + std::to_string(index) + ".txt";
@@ -181,7 +183,7 @@ void TestBallistic2()
 	auto pAtmosphere{ std::make_shared<StaticAtmosphere81>(pGravity->R(), pGravity->Fl()) };
 	auto ball = Ballistic(pGravity, pAtmosphere, 16);
 	std::cout << "initial point:\n";
-	std::cout << "T: " << x0.T.ToDateTime() << "; x: " <<
+	std::cout << "T: " << x0.T.to_datetime() << "; x: " <<
 		x0.Vec << "; s = " << x0.Sb << "; loop = " << x0.Loop << std::endl;
 	try {
 		ball.Run(x0, x0.T + 0.5);
@@ -190,13 +192,13 @@ void TestBallistic2()
 		int deltas[] { 17, 300, 3600, 86330 };
 		for (size_t i = 0; i < sizeof(deltas) / sizeof(deltas[0]); ++i)
 		{
-			list[i].AddSeconds(deltas[i]);
-			if (!ball.GetPoint(list[i], x))
+			list[i].add_seconds(deltas[i]);
+			if (!ball.get_point(list[i], x))
 			{
-				std::cout << "Failed to calculate the point for time: " << list[i].ToDateTime() << std::endl;
+				std::cout << "Failed to calculate the point for time: " << list[i].to_datetime() << std::endl;
 			}
 			else {
-				std::cout << "T: " << list[i].ToDateTime() << "; x: " <<
+				std::cout << "T: " << list[i].to_datetime() << "; x: " <<
 					x.Vec << "; s = " << x.Sb << "; loop = " << x.Loop << std::endl;
 			}
 		}
@@ -208,7 +210,7 @@ void TestBallistic2()
 	}
 }
 
-void TestBallistic()
+void test_ballistic()
 {
 	TestBallistic1();
 	TestBallistic2();

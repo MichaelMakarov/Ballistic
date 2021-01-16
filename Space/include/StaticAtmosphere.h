@@ -14,7 +14,7 @@ namespace ball
                 const double eFl) : _eR{ eR }, _eFl{ eFl } {}
             ~StaticAtmosphere81() {}
 
-            double Density(
+            double density(
                 const geometry::XYZ& position,
                 const time::JD& time) const override;
         private:

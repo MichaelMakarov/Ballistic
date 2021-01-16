@@ -9,7 +9,7 @@ namespace ball
         class IAtmosphere
         {
         public:
-            virtual double Density(
+            virtual double density(
                 const geometry::XYZ& position, 
                 const time::JD& time) const = 0;
         };
