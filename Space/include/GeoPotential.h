@@ -13,7 +13,6 @@ namespace ball
 		{
 		private:
 			std::vector<std::pair<double, double>> _harmonics;
-			std::vector<math::LegendreFunction> _functions;
 			size_t _count;
 			double _eR, _eMu;
 

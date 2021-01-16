@@ -16,51 +16,52 @@ namespace ball
 			for (size_t i = 0; i <= _count; ++i) dim += i + 1;
 			_harmonics.resize(dim);
 			std::memcpy(_harmonics.data(), pGravity->Harmonics().data(), sizeof(std::pair<double, double>) * dim);
-			_functions.resize(dim);
-			dim = 0;
-			for (size_t n = 0; n <= _count; ++n)
-				for (size_t m = 0; m <= n; ++m)
-				{
-					_functions[dim++] = math::LegendreFunction(n, m, true);
-				}
 		}
 
 		double GeoPotential::operator () (const geometry::RBL& coordinates) const
 		{
-			double result = 0.0,
-				sinphi = std::sin(coordinates.B),
-				R_r = _eR / coordinates.R,
-				l = coordinates.L,
-				mult = 1,
-				p;
-			size_t k = 0;
-			std::vector<std::pair<double, double>> ls(_count + 1);
-			for (size_t i = 0; i <= _count; ++i) 
-				ls[i] = { std::cos(i * l), std::sin(i * l) };
+			double result{ 0 };
+			const double sinphi{ std::sin(coordinates.B) };
+			const double cosphi{ std::cos(coordinates.B) };
+			const double R_r{ _eR / coordinates.R };
+			const double coslambda{ std::cos(coordinates.L) };
+			const double sinlambda{ std::sin(coordinates.L) };
+			double mult{ 1 };
+			double b;
+			size_t k{ 3 };
+			std::vector<std::pair<double, double>> cs(_count + 1);
+			cs[0] = { 1, 0 };
+			for (size_t i = 1; i <= _count; ++i)
+				cs[i] = {
+					cs[i - 1].first * coslambda - cs[i - 1].second * sinlambda,
+					cs[i - 1].second * coslambda + cs[i - 1].first * sinlambda
+			};
+			// legendre functions
+			auto pnm{ std::vector<double>(_harmonics.size()) };
+			pnm[0] = 1;
+			pnm[1] = sinphi * std::sqrt(3);
+			pnm[2] = cosphi * std::sqrt(3);
+			for (size_t n = 2; n <= _count; ++n)
+			{
+				for (size_t m = 0; m < n; ++m)
+				{
+					pnm[k] = std::sqrt(2 * n - 1) * sinphi * pnm[k - n] - std::sqrt((n - 1 - m) * (n - 1 + m) / (2.0 * n - 3)) * pnm[(k + 1) - n - n];
+					pnm[k++] *= std::sqrt((2.0 * n + 1) / ((n - m) * (n + m)));
+				}
+				pnm[k++] = std::sqrt(1 + 0.5 / n) * cosphi * pnm[k - n - 1];
+			}
+			k = 0;
 			for (size_t n = 0; n <= _count; ++n)
 			{
 				for (size_t m = 0; m <= n; ++m)
 				{
-					p = _harmonics[k].first * ls[m].first + _harmonics[k].second * ls[m].second;
-					result += mult * p * _functions[k](sinphi);
+					b = _harmonics[k].first * cs[m].first + _harmonics[k].second * cs[m].second;
+					result += mult * b * pnm[k];
 					k++;
 				}
 				mult *= R_r;
 			}
 			return _eMu / coordinates.R * result;
-		}
-
-		double legendre_from_previous(const double pnm_1, const double pnm_2, const double n, const double m, const double x)
-		{
-			const double c{ std::sqrt((2.0 * n + 1) / ((n - m) * (n + m))) };
-			return c * (std::sqrt(2 * n - 1) * x * pnm_1 - std::sqrt((n - 1 - m) * (n - 1 + m) / (2.0 * n - 3)) * pnm_2);
-		}
-		double legendre_derivative(const double pnm_1, const double pnm_2, const double n, const double m, const double x)
-		{
-			const double c{ 1 / std::sqrt((n + m) * (n + 1 - m)) };
-			const double k = m == 2 ? 2 : 1;
-			return c * (2 * (m - 1) * x * pnm_1 - std::sqrt(k * (n + 2 - m) * (n + m - 1)) * pnm_2);
-
 		}
 
 		geometry::XYZ GeoPotential::acceleration(const geometry::XYZ& xyzCoord) const
@@ -84,12 +85,7 @@ namespace ball
 			// the derivatives
 
 			const auto xyzdR{ xyzCoord / r };
-			const auto xyzdPhi{
-				XYZ(
-					-xyzCoord.X * zxyr,
-					-xyzCoord.Y * zxyr,
-					xy / r)
-			};
+			const auto xyzdPhi{	XYZ(-xyzCoord.X * zxyr,	-xyzCoord.Y * zxyr,	xy / r) };
 			const auto xyzdLambda{ XYZ(-xyzCoord.Y / xy, xyzCoord.X / xy, 0) };
 
 			// the temporary values
@@ -104,7 +100,6 @@ namespace ball
 			// cosines and sines
 			auto cs{ std::vector<std::pair<double, double>>(_count + 1) };
 			cs[0] = { 1, 0 };
-			//cs[1] = { coslambda, sinlambda };
 			for (size_t i = 1; i <= _count; ++i)
 				cs[i] = {
 					cs[i - 1].first * coslambda - cs[i - 1].second * sinlambda,

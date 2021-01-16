@@ -60,9 +60,9 @@ void test_atmosphere()
 
 	EGM96 gm;
 	auto atmosphere{ StaticAtmosphere81(gm.R(), gm.Fl()) };
-	double delta = 100.0;
-	double height{ 0 };
-	auto rblPosition{ RBL(gm.R(), 0, ball::math::deg_to_rad(349.45)) };
+	double delta = 1000.0;
+	double height{ 10 };
+	auto rblPosition{ RBL(gm.R() + height, 0, ball::math::deg_to_rad(349.45)) };
 	std::cout << "Position: " << rblPosition << std::endl;
 	for (size_t i = 0; i < 60; ++i)
 	{

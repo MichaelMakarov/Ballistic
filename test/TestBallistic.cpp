@@ -116,6 +116,7 @@ void TestBallistic1()
 	auto index{ 1 };
 	auto calculate = [pGravity, pAtmosphere](const State& x, const double dt, const size_t index)
 	{
+		//std::this_thread::sleep_for(std::chrono::seconds(10));
 		auto ball = Ballistic(pGravity, pAtmosphere, 16);
 		auto pBall = &ball;
 		auto printFile = [pBall](const std::string& filename) {
@@ -137,32 +138,11 @@ void TestBallistic1()
 			printFile(filename);
 		}
 	};
-	/*auto ball = Ballistic(pGravity, pAtmosphere, 16);
-	auto pBall = &ball;
-	auto printFile = [pBall](const std::string& filename) {
-		auto fout = std::ofstream(filename);
-		fout << std::setprecision(16);
-		for (auto& x : pBall->Trajectory())
-			fout << x.second.ToDateTime() << "; " << x.first << std::endl;
-		fout.close();
-	};*/
 	for (auto& x : list)
 	{
-		auto future = std::async(std::launch::async, calculate, x, 1.0, index++);
-		//future.get();
-		/*std::cout << index << std::ends;
-		auto filename = "ball test mma version " + std::to_string(index++) + ".txt";
-		try {
-			ball.Run(x, x.T + 1.0);
-			std::cout << " Successfully calculated!\n";
-			printFile(filename);
-		}
-		catch (std::exception& ex)
-		{
-			std::cout << "An error occured !" << ex.what() << "\n";
-			printFile(filename);
-		}
-		std::cout << std::endl;*/
+		//auto future = std::async(std::launch::async, calculate, x, 1.0, index++);
+		auto thr{ std::thread(calculate, x, 1.0, index++) };
+		thr.join();
 	}
 	
 }
