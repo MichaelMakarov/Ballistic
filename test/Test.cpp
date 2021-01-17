@@ -176,7 +176,7 @@ void TestBallistic2()
 	}
 	catch (std::exception& ex)
 	{
-		std::cout << "An error occured during the calculation!\n";
+		std::cout << "An error occured during the calculation! " << ex.what() << std::endl;
 	}
 }
 
