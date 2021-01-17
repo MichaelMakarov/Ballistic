@@ -91,7 +91,7 @@ void TestBallistic1()
 {
 	std::cout << "\n...Test ballistic 1...\n";
 
-	auto list =	{
+	std::vector<State> list {
 		State(
 			-5173447.1334, 4100505.6444, 0,
 			-368.2895847, -575.7154581, 7689.0963483,
@@ -138,11 +138,10 @@ void TestBallistic1()
 			printFile(filename);
 		}
 	};
-	for (auto& x : list)
+	auto tasks{ std::vector<std::future<void>>(list.size()) };
+	for (size_t i = 0; i < list.size(); ++i)
 	{
-		//auto future = std::async(std::launch::async, calculate, x, 1.0, index++);
-		auto thr{ std::thread(calculate, x, 1.0, index++) };
-		thr.join();
+		tasks[i] = std::async(std::launch::async, calculate, list[i], 1.0, index++);
 	}
 	
 }
