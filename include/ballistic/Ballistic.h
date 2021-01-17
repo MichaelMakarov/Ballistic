@@ -3,7 +3,7 @@
 #include "GeoPotential.h"
 #include "Conversions.h"
 #include "Structures.h"
-#include "GeneralConstants.h"
+#include "general/GeneralConstants.h"
 #include "Integrators.h"
 #include "AdamsIntegrator.h"
 #include "RungeKuttaIntegrator.h"

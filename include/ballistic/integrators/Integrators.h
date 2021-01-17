@@ -1,6 +1,6 @@
 #pragma once
-#include "Geometry.h"
-#include "Times.h"
+#include "general/Geometry.h"
+#include "general/Times.h"
 #include <functional>
 
 namespace ball

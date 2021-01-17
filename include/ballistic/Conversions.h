@@ -1,11 +1,12 @@
 #pragma once
-#include "GeneralConstants.h"
-#include "Geometry.h"
+#include "general/GeneralConstants.h"
+#include "general/Geometry.h"
 
 namespace ball
 {
 	namespace space
 	{
+		using namespace general;
 		// The height calculation from GCS position and geo parameters.
 		// rad - a radius of Earth's equator.
 		// fl - the flatening of Earth.

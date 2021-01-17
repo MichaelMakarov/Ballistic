@@ -1,0 +1,3 @@
+[submodule "libs/General"]
+	path = libs/General
+	url = https://github.com/MichaelMakarov/General.git

@@ -1,13 +1,14 @@
 #pragma once
-#include "Geometry.h"
+#include "general/Geometry.h"
 #include "Gravity.h"
-#include "Mathematics.h"
+#include "general/Mathematics.h"
 #include <memory>
 
 namespace ball
 {
 	namespace space
 	{
+		using namespace general;
 		// Class represents a geopotential with its properties
 		class GeoPotential
 		{

@@ -1,11 +1,12 @@
 #pragma once
-#include "Geometry.h"
-#include "Times.h"
+#include "general/Geometry.h"
+#include "general/Times.h"
 
 namespace ball
 {
     namespace space
     {
+        using namespace general;
         class IAtmosphere
         {
         public:

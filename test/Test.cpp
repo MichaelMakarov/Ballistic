@@ -8,83 +8,74 @@
 #include <future>
 #include <AdamsIntegrator.h>
 #include <RungeKuttaIntegrator.h>
+#include <EGM96.h>
 
 using namespace ball;
 using namespace space;
-using namespace geometry;
 
-void test_integrator();
+void test_conversions();
+void test_geopotential();
+void test_atmosphere();
 void test_ballistic();
 
 int main()
 {
+	test_conversions();
+	test_geopotential();
+	test_atmosphere();
 	test_ballistic();
 	return 0;
 }
 
-void test_integrator()
+void test_conversions()
 {
-	std::cout << "\n...Test integrators...\n";
+	std::cout << "\n...Test conversions...\n";
+
+	auto xyzPosition{ XYZ(-4688980.289, -11060428.914, 238914.750) };
+	std::cout << "Initial position in orthogonal: " << xyzPosition << std::endl;
+	auto rblPosition = GCS_ortho_to_spher(xyzPosition);
+	std::cout << "Converted to spherical: " << rblPosition << std::endl;
+	auto xyzCheck = GCS_spher_to_ortho(rblPosition);
+	std::cout << "Converted to orthogonal: " << xyzCheck << std::endl;
+
+}
+
+void test_geopotential()
+{
+	std::cout << "\n...Test geopotential...\n";
 
 	std::cout << std::setprecision(16);
-	/*types::PV x0(
-		geometry::XYZ(-4688980.289, -11060428.914, 238914.750),
-		geometry::XYZ(-1402.353, 1753.937, 5249.663));
-	time::JD t0(time::DateTime(2015, 7, 11, 0, 0, 0, 0));
-	auto f = [](const types::PV& x, const time::JD& tk) {
-		tasks::GeoPotential geopot(
-			std::move(std::unique_ptr<tasks::IGravity>{ new tasks::EGM96() }),
-			16);
-		auto rbl = tasks::GCS_OrthoToSpher(geometry::XYZ(x.P1, x.P2, x.P3));
-		double pot = -geopot(rbl) / rbl.R;
-		auto xyz = tasks::GCS_SpherToOrtho(geometry::RBL(pot, rbl.B, rbl.L));
-		return types::PV(geometry::XYZ(x.V1, x.V2, x.V3), xyz);
-	};
-
-	std::cout << "Initial x0: " << x0 << std::endl;
-
-	int step = 360;
-	time::JD tk = t0;
-	size_t n = 10;
-	std::vector<std::pair<types::PV, time::JD>> values(n);
-	values[0] = { x0, tk };
-	PlahovIntegrator<> plint;
-	plint.Initialize(x0, tk);
-	plint.Func = f;
-	RungeKuttaIntegrator<> rkint;
-	rkint.Initialize(x0, tk);
-	rkint.Func = f;
-	AdamsIntegrator<> abint;
-	abint.Func = f;
-
-	std::cout << "Plahov's integrator:\n";
-	for (size_t i = 1; i < n; ++i)
+	auto gp{ GeoPotential(std::move(std::unique_ptr<EGM96>{ new EGM96() }), 16) };
+	double delta = ball::math::deg_to_rad(5);
+	double latitude{ 0 };
+	double longitude{ ball::math::deg_to_rad(349.45) };
+	double radius{ 6378137.000 + 5.63755000000E+06 };
+	for (size_t i = 0; i < 60; ++i)
 	{
-		auto xk = plint.Integrate(step);
-		tk.AddSeconds(step);
-		values[i] = { xk, tk };
-		plint.Initialize(xk, tk);
-		std::cout << i << ": " << xk << std::endl;
+		auto position{ RBL(radius, latitude, longitude) };
+		std::cout << "U(" << position << ") = " << gp(position) << std::endl;
+		latitude += 0.1 * delta;
+		longitude += delta;
 	}
-	tk = t0;
-	std::cout << "Runge-Kutta's integrator:\n";
-	for (size_t i = 1; i < n; ++i)
-	{
-		auto xk = rkint.Integrate(step);
-		tk.AddSeconds(step);
-		rkint.Initialize(xk, tk);
-		std::cout << i << ": " << xk << std::endl;
-	}
-	std::cout << "Adams-Bashforth's integrator:\n";
-	for (size_t i = 8; i < n; ++i)
-	{
-		abint.Initialize(values.begin());
-		auto xk = abint.Integrate(step);
-		tk.AddSeconds(step);
-		values[i] = { xk, tk };
-		std::cout << i + 1 << ": " << xk << std::endl;
-	}*/
+}
 
+void test_atmosphere()
+{
+	std::cout << "\n...Test atmosphere...\n";
+
+	EGM96 gm;
+	auto atmosphere{ StaticAtmosphere81(gm.R(), gm.Fl()) };
+	double delta = 1000.0;
+	double height{ 10 };
+	auto rblPosition{ RBL(gm.R() + height, 0, ball::math::deg_to_rad(349.45)) };
+	std::cout << "Position: " << rblPosition << std::endl;
+	for (size_t i = 0; i < 60; ++i)
+	{
+		std::cout << "h = " << height << "; rho = " <<
+			atmosphere.density(GCS_spher_to_ortho(rblPosition), ball::time::JD2000) << std::endl;
+		height += delta;
+		rblPosition.R += delta;
+	}
 }
 
 void TestBallistic1()
