@@ -1,11 +1,11 @@
-﻿#pragma once
+#pragma once
 #include "Gravity.h"
 
 namespace ball
 {
 	namespace space
 	{
-		class EGM96 : public IGravity
+		class JGM3 : public IGravity
 		{
 		public:
 			size_t Count() const override { return 50; }

@@ -21,9 +21,12 @@ add_library(
 
 	src/GeoPotential.cpp
 	src/StaticAtmosphere.cpp
+	src/EGM96.cpp
+	src/JGM3.cpp 
+	src/PZ90.cpp
 	
 	src/PzForecast.cpp
-)
+ )
 
 add_subdirectory(
 	${CMAKE_CURRENT_SOURCE_DIR}/libs/General

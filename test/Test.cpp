@@ -151,9 +151,9 @@ void TestBallistic2()
 		0.018059454,
 		JD(42187, 0.321120925924333) + JD1899,
 		1) };
-	auto pGravity{ std::make_shared<PZ90>() };
+	auto pGravity{ std::make_shared<EGM96>() };
 	auto pAtmosphere{ std::make_shared<StaticAtmosphere81>(pGravity->R(), pGravity->Fl()) };
-	auto pForecast{ std::make_shared<PzForecast>(pGravity, 16, pAtmosphere) };
+	auto pForecast{ std::make_shared<PzForecast>(pGravity, 50, pAtmosphere) };
 	auto ball = Ballistic<PzForecast>(pForecast);
 	std::cout << "initial point:\n";
 	std::cout << "T: " << x0.T.to_datetime() << "; x: " <<
