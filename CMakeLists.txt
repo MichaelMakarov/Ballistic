@@ -8,6 +8,7 @@ include_directories(
 	${CMAKE_CURRENT_SOURCE_DIR}/include/ballistic/atmosphere
 	${CMAKE_CURRENT_SOURCE_DIR}/include/ballistic/gravity
 	${CMAKE_CURRENT_SOURCE_DIR}/include/ballistic/integrators
+	${CMAKE_CURRENT_SOURCE_DIR}/include/ballistic/forecasts
 	${CMAKE_CURRENT_SOURCE_DIR}/include/ballistic
 	${CMAKE_CURRENT_SOURCE_DIR}/libs/General/include
 )
@@ -20,11 +21,12 @@ add_library(
 
 	src/GeoPotential.cpp
 	src/StaticAtmosphere.cpp
-
+	
+	src/PzForecast.cpp
 )
 
 add_subdirectory(
-	libs/General
+	${CMAKE_CURRENT_SOURCE_DIR}/libs/General
 )
 
 target_link_libraries(

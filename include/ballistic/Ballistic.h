@@ -1,6 +1,5 @@
 ﻿#pragma once
-#include "Atmosphere.h"
-#include "GeoPotential.h"
+#include "Forecast.h"
 #include "Conversions.h"
 #include "Structures.h"
 #include "general/GeneralConstants.h"
@@ -18,47 +17,16 @@ namespace ball
 		
 	// Object provides the functionality for ballistic calculation.
 	// The trajectory of the center of mass for the space vehicle can be calculated.
+	template<class ForecastType>
 	class Ballistic
 	{
 	private:
-		const std::shared_ptr<IAtmosphere> _pAtmosphere;
-		const GeoPotential _geoPotential;
+		std::shared_ptr<Forecast<ForecastType>> _pForecast;
 		std::vector<std::pair<PV, JD>> _trajectory;
 		std::vector<size_t> _loops;
-		double _sBall;
 		double _deltatime;
-		double _eW, _eFl, _eR;
-
-	public:
-		double MinHeight = 1e5, MaxHeight = 1e8;
 
 	private:
-
-		PV function(const PV& vec, const JD& t)
-		{
-			PV func(vec.V1, vec.V2, vec.V3, 0, 0, 0);
-			auto xyzPos{ XYZ(vec.P1, vec.P2, vec.P3) };
-			double r = xyzPos.length();
-			double r_2{ r * r };
-			double w_2{ _eW * _eW };
-			double h = GCS_height_from_position(xyzPos, _eR, _eFl);
-			if (h < MinHeight || h > MaxHeight)
-				throw std::runtime_error("Height is out of bounds!");
-			// geopotential aceleration with a centrifugal and a coriolis force
-			auto xyzAcPot{ _geoPotential.acceleration(xyzPos) };
-			// atmosphere aceleration a = v * s * rho, 
-			// s - a ballistic coefficient,
-			// v - a velocity of the vehicle,
-			// rho - a density of the atmosphere
-			double density = _pAtmosphere->density(xyzPos, t);
-			double v = std::sqrt(vec.V1 * vec.V1 + vec.V2 * vec.V2 + vec.V3 * vec.V3);
-			double acAtm = v * density * _sBall;
-			// the addition all the components
-			func.V1 = xyzAcPot.X + w_2 * vec.P1 + 2 * _eW * vec.V2 - acAtm * vec.V1;
-			func.V2 = xyzAcPot.Y + w_2 * vec.P2 - 2 * _eW * vec.V1 - acAtm * vec.V2;
-			func.V3 = xyzAcPot.Z - acAtm * vec.V3;
-			return func;
-		}
 
 		template<class SinglestepIntType>
 		void start_run(
@@ -106,22 +74,29 @@ namespace ball
 		}
 
 	public:
-		Ballistic(
-			const std::shared_ptr<IGravity> pGravity,
-			const std::shared_ptr<IAtmosphere> pAtmosphere,
-			const size_t harmonics) :
-			_geoPotential{ GeoPotential(pGravity, harmonics) },
-			_pAtmosphere{ pAtmosphere },
-			_eR{ pGravity->R() },
-			_eFl{ pGravity->Fl() },
-			_eW{ pGravity->W() },
-			_deltatime{ 0 }, _sBall{ 0 }
+		explicit Ballistic(const std::shared_ptr<Forecast<ForecastType>>& pForecast) :
+			_pForecast{pForecast},
+			_deltatime{ 0 }
 		{}
 		Ballistic(const Ballistic& ball) = delete;
-		~Ballistic() {}
+		Ballistic(Ballistic&& b) noexcept : 
+			_pForecast{ std::move(b._pForecast) },
+			_trajectory{ std::move(b._trajectory)},
+			_loops{ std::move(b._loops) },
+			_deltatime{ b._deltatime }
+		{}
+		~Ballistic() = default;
 
 		Ballistic& operator = (const Ballistic& ball) = delete;
-
+		Ballistic& operator = (Ballistic&& b) noexcept
+		{
+			_pForecast = std::move(b._pForecast);
+			_trajectory = std::move(b._trajectory);
+			_loops = std::move(b._loops);
+			_deltatime = b._deltatime;
+			_deltatime = 0;
+			return *this;
+		}
 
 		template<class MultistepIntType = AdamsIntegrator, class SinglestepIntType = RKIntegrator>
 		// Calculating the trajectory.
@@ -146,26 +121,26 @@ namespace ball
 			if (tk <= x0.T)
 				throw std::invalid_argument("Invalid tk < tn!");
 			_deltatime = continueStep / SEC_PER_DAY;
-			_sBall = x0.Sb;
+			_pForecast->sBall = x0.Sb;
 			size_t index = _pMultiStepInt->degree() - 1;
 			size_t count = static_cast<size_t>((tk - x0.T) / _deltatime) + 1;
 			_trajectory.resize(count);
 			_loops.resize(count);
 
-			auto pFunc = &Ballistic::function;
-			auto pThis = this;
-			auto func = [pFunc, pThis](const PV& vec, const JD& time) {
-				return (pThis->*pFunc)(vec, time);
+			auto func = &Forecast<ForecastType>::function;
+			auto ptr = _pForecast.get();
+			auto function = [func, ptr](const PV& vec, const JD& time) {
+				return (ptr->*func)(vec, time);
 			};
-			multistep_int.func = func;
-			singlestep_int.func = func;
+			multistep_int.func = function;
+			singlestep_int.func = function;
 
 			_trajectory[0] = { x0.Vec, x0.T };
 			_loops[0] = x0.Loop;
 			// performing initial calculations
-			start_run<SinglestepIntType>(startStep, continueStep, index, singlestep_int);
+			start_run(startStep, continueStep, index, singlestep_int);
 			// performing remaining calculations
-			continue_run<MultistepIntType>(continueStep, index, multistep_int);
+			continue_run(continueStep, index, multistep_int);
 		}
 
 		template<class MultistepIntType = AdamsIntegrator, class SinglestepIntType = RKIntegrator>
@@ -189,7 +164,7 @@ namespace ball
 			if (tk <= x0.T)
 				throw std::invalid_argument("Invalid tk < tn!");
 			_deltatime = continueStep / SEC_PER_DAY;
-			_sBall = x0.Sb;
+			_pForecast->sBall = x0.Sb;
 			SinglestepIntType singlestep_int;
 			MultistepIntType multistep_int;
 			size_t index = multistep_int.degree() - 1;
@@ -197,20 +172,20 @@ namespace ball
 			_trajectory.resize(count);
 			_loops.resize(count);
 
-			auto pFunc = &Ballistic::function;
-			auto pThis = this;
-			auto func = [pFunc, pThis](const PV& vec, const JD& time) {
-				return (pThis->*pFunc)(vec, time);
+			auto func = &Forecast<ForecastType>::function;
+			auto ptr = _pForecast.get();
+			auto function = [func, ptr](const PV& vec, const JD& time) {
+				return (ptr->*func)(vec, time);
 			};
-			multistep_int.func = func;
-			singlestep_int.func = func;
+			multistep_int.func = function;
+			singlestep_int.func = function;
 
 			_trajectory[0] = { x0.Vec, x0.T };
 			_loops[0] = x0.Loop;
 			// performing initial calculations
-			start_run<SinglestepIntType>(startStep, continueStep, index, singlestep_int);
+			start_run(startStep, continueStep, index, singlestep_int);
 			// performing remaining calculations
-			continue_run<MultistepIntType>(continueStep, index, multistep_int);
+			continue_run(continueStep, index, multistep_int);
 		}
 
 		// Calculating the state parameters.
@@ -252,7 +227,7 @@ namespace ball
 					result += mult * _trajectory[indexn++].first;
 				}
 				intersection = intersection && std::signbit(result.P3) == false;
-				x = State(result, _sBall, time, loop + intersection ? 1 : 0);
+				x = State(result, _pForecast->sBall, time, loop + intersection ? 1 : 0);
 				return true;
 			}
 			return false;

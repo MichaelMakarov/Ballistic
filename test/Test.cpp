@@ -9,6 +9,8 @@
 #include <AdamsIntegrator.h>
 #include <RungeKuttaIntegrator.h>
 #include <EGM96.h>
+#include <GeoPotential.h>
+#include "PzForecast.h"
 
 using namespace ball;
 using namespace space;
@@ -104,13 +106,14 @@ void TestBallistic1()
 	};
 	auto pGravity{ std::make_shared<PZ90>() };
 	auto pAtmosphere{ std::make_shared<StaticAtmosphere81>(pGravity->R(), pGravity->Fl()) };
+	auto pForecast{ std::make_shared<PzForecast>(pGravity, 16, pAtmosphere) };
 	auto index{ 1 };
-	auto calculate = [pGravity, pAtmosphere](const State& x, const double dt, const size_t index)
+	auto calculate = [pForecast](const State& x, const double dt, const size_t index)
 	{
 		//std::this_thread::sleep_for(std::chrono::seconds(10));
-		auto ball = Ballistic(pGravity, pAtmosphere, 16);
+		auto ball = Ballistic<PzForecast>(pForecast);
 		auto pBall = &ball;
-		auto printFile = [pBall](const std::string& filename) {
+		auto printfile = [pBall](const std::string& filename) {
 			auto fout = std::ofstream(filename);
 			fout << std::setprecision(16);
 			for (auto& x : pBall->trajectory())
@@ -121,12 +124,12 @@ void TestBallistic1()
 		try {
 			ball.Run(x, x.T + dt);
 			std::cout << index << " Successfully calculated!\n";
-			printFile(filename);
+			printfile(filename);
 		}
 		catch (std::exception& ex)
 		{
 			std::cout << index << " An error occured! " << ex.what() << "\n";
-			printFile(filename);
+			printfile(filename);
 		}
 	};
 	auto tasks{ std::vector<std::future<void>>(list.size()) };
@@ -140,7 +143,6 @@ void TestBallistic1()
 void TestBallistic2()
 {
 	std::cout << "\n...Test ballistic 2...\n";
-	std::shared_ptr<State> ptr;
 	std::cout << std::setprecision(15);
 
 	auto x0{ State(
@@ -151,7 +153,8 @@ void TestBallistic2()
 		1) };
 	auto pGravity{ std::make_shared<PZ90>() };
 	auto pAtmosphere{ std::make_shared<StaticAtmosphere81>(pGravity->R(), pGravity->Fl()) };
-	auto ball = Ballistic(pGravity, pAtmosphere, 16);
+	auto pForecast{ std::make_shared<PzForecast>(pGravity, 16, pAtmosphere) };
+	auto ball = Ballistic<PzForecast>(pForecast);
 	std::cout << "initial point:\n";
 	std::cout << "T: " << x0.T.to_datetime() << "; x: " <<
 		x0.Vec << "; s = " << x0.Sb << "; loop = " << x0.Loop << std::endl;

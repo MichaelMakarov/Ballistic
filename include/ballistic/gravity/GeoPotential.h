@@ -24,10 +24,12 @@ namespace ball
 			GeoPotential(
 				const std::shared_ptr<IGravity> pPotential,
 				const size_t harmonics);
-			GeoPotential(const GeoPotential& gp) = delete;
-			~GeoPotential() {}
+			GeoPotential(const GeoPotential& gp);
+			GeoPotential(GeoPotential&& gp) noexcept;
+			~GeoPotential() noexcept {}
 
-			GeoPotential& operator = (const GeoPotential& gp) = delete;
+			GeoPotential& operator = (const GeoPotential& gp);
+			GeoPotential& operator = (GeoPotential&& gp) noexcept;
 
 			// Calculating the value of Earth's potential
 			double operator () (const geometry::RBL& coordinates) const;

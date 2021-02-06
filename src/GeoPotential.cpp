@@ -18,6 +18,42 @@ namespace ball
 			std::memcpy(_harmonics.data(), pGravity->Harmonics().data(), sizeof(std::pair<double, double>) * dim);
 		}
 
+		GeoPotential::GeoPotential(const GeoPotential& gp)
+		{
+			_count = gp._count;
+			_eR = gp._eR;
+			_eMu = gp._eMu;
+			_harmonics = gp._harmonics;
+		}
+
+		GeoPotential::GeoPotential(GeoPotential&& gp) noexcept
+		{
+			_count = gp._count;
+			_eR = gp._eR;
+			_eMu = gp._eMu;
+			_harmonics = std::move(gp._harmonics);
+			gp._eR = gp._eMu = gp._count = 0;
+		}
+
+		GeoPotential& GeoPotential::operator = (const GeoPotential& gp)
+		{
+			_count = gp._count;
+			_eR = gp._eR;
+			_eMu = gp._eMu;
+			_harmonics = gp._harmonics;
+			return *this;
+		}
+
+		GeoPotential& GeoPotential::operator = (GeoPotential&& gp) noexcept
+		{
+			_count = gp._count;
+			_eR = gp._eR;
+			_eMu = gp._eMu;
+			_harmonics = std::move(gp._harmonics);
+			gp._eR = gp._eMu = gp._count = 0;
+			return *this;
+		}
+
 		double GeoPotential::operator () (const geometry::RBL& coordinates) const
 		{
 			double result{ 0 };
@@ -29,7 +65,7 @@ namespace ball
 			double mult{ 1 };
 			double b;
 			size_t k{ 3 };
-			std::vector<std::pair<double, double>> cs(_count + 1);
+			thread_local static std::vector<std::pair<double, double>> cs(_count + 1);
 			cs[0] = { 1, 0 };
 			for (size_t i = 1; i <= _count; ++i)
 				cs[i] = {
@@ -37,7 +73,7 @@ namespace ball
 					cs[i - 1].second * coslambda + cs[i - 1].first * sinlambda
 			};
 			// legendre functions
-			auto pnm{ std::vector<double>(_harmonics.size()) };
+			thread_local static auto pnm{ std::vector<double>(_harmonics.size()) };
 			pnm[0] = 1;
 			pnm[1] = sinphi * std::sqrt(3);
 			pnm[2] = cosphi * std::sqrt(3);
@@ -98,7 +134,7 @@ namespace ball
 			auto delta = [](const size_t m) { return m == 0 ? 0.5 : 1.0; };
 
 			// cosines and sines
-			auto cs{ std::vector<std::pair<double, double>>(_count + 1) };
+			thread_local static auto cs{ std::vector<std::pair<double, double>>(_count + 1) };
 			cs[0] = { 1, 0 };
 			for (size_t i = 1; i <= _count; ++i)
 				cs[i] = {
@@ -106,7 +142,7 @@ namespace ball
 					cs[i - 1].second * coslambda + cs[i - 1].first * sinlambda 
 				};
 			// legendre functions
-			auto pnm{ std::vector<double>(_harmonics.size()) };
+			thread_local static auto pnm{ std::vector<double>(_harmonics.size()) };
 			pnm[0] = 1;
 			pnm[1] = sinphi * std::sqrt(3);
 			pnm[2] = cosphi * std::sqrt(3);
@@ -149,13 +185,13 @@ namespace ball
 			rbldU_sum.B *= mu_r_2;
 			rbldU_sum.L *= mu_r_2;
 
-			auto centrPot{ XYZ(-mu_r_2 * xyzdR.X, -mu_r_2 * xyzdR.Y, -mu_r_2 * xyzdR.Z) };
-			auto harmPot = XYZ(
+			auto centr_pot{ XYZ(-mu_r_2 * xyzdR.X, -mu_r_2 * xyzdR.Y, -mu_r_2 * xyzdR.Z) };
+			auto harm_pot = XYZ(
 				rbldU_sum.R * xyzdR.X + rbldU_sum.B * xyzdPhi.X + rbldU_sum.L * xyzdLambda.X,
 				rbldU_sum.R * xyzdR.Y + rbldU_sum.B * xyzdPhi.Y + rbldU_sum.L * xyzdLambda.Y,
 				rbldU_sum.R * xyzdR.Z + rbldU_sum.B * xyzdPhi.Z
 			);
-			return centrPot + harmPot;
+			return centr_pot + harm_pot;
 		}
 	}
 }
