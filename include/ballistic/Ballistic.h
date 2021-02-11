@@ -96,7 +96,7 @@ namespace ball
 			return *this;
 		}
 
-		template<class MultistepIntType = AdamsIntegrator, class SinglestepIntType = RKIntegrator>
+		template<class MultistepIntType = AdamsIntegrator<>, class SinglestepIntType = RKIntegrator<>>
 		// Calculating the trajectory.
 		// x0 - initial conditions;
 		// tk - final time;
@@ -141,7 +141,7 @@ namespace ball
 			continue_run(continueStep, index, multistep_int);
 		}
 
-		template<class MultistepIntType = AdamsIntegrator, class SinglestepIntType = RKIntegrator>
+		template<class MultistepIntType = AdamsIntegrator<>, class SinglestepIntType = RKIntegrator<>>
 		// Calculating the trajectory.
 		// x0 - initial conditions;
 		// tk - final time;

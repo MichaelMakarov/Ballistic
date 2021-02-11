@@ -186,12 +186,4 @@ void test_ballistic()
 {
 	TestBallistic1();
 	TestBallistic2();
-	std::vector<double> v{ 1, 2, 3, 9 };
-	std::allocator<double> a;
-	const size_t n = 10;
-	double* d = a.allocate(n);
-	for (size_t i = 0; i < n; ++i) {
-		a.construct(d + i, i + 1);
-	}
-	a.deallocate(d, n);
 }

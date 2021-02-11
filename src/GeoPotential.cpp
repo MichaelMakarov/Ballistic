@@ -32,7 +32,8 @@ namespace ball
 			_eR = gp._eR;
 			_eMu = gp._eMu;
 			_harmonics = std::move(gp._harmonics);
-			gp._eR = gp._eMu = gp._count = 0;
+			gp._eR = gp._eMu = 0;
+			gp._count = 0;
 		}
 
 		GeoPotential& GeoPotential::operator = (const GeoPotential& gp)
@@ -50,7 +51,8 @@ namespace ball
 			_eR = gp._eR;
 			_eMu = gp._eMu;
 			_harmonics = std::move(gp._harmonics);
-			gp._eR = gp._eMu = gp._count = 0;
+			gp._eR = gp._eMu = 0;
+			gp._count = 0;
 			return *this;
 		}
 
