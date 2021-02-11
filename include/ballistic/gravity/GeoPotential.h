@@ -1,6 +1,6 @@
 #pragma once
 #include "general/Geometry.h"
-#include "Gravity.h"
+#include "EarthModel.h"
 #include "general/Mathematics.h"
 #include <memory>
 
@@ -22,7 +22,7 @@ namespace ball
 			// pPotential - a pointer to the Earth's gravity model.
 			// harmonics - a number of spherical functions in the gravity model to consider.
 			GeoPotential(
-				const std::shared_ptr<IGravity> pPotential,
+				const std::shared_ptr<IEarth> pPotential,
 				const size_t harmonics);
 			GeoPotential(const GeoPotential& gp);
 			GeoPotential(GeoPotential&& gp) noexcept;

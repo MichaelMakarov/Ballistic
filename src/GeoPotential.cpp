@@ -6,16 +6,16 @@ namespace ball
 	namespace space
 	{
 		GeoPotential::GeoPotential(
-			const std::shared_ptr<IGravity> pGravity,
+			const std::shared_ptr<IEarth> pGravity,
 			const size_t count)
 		{
-			_count = count > pGravity->Count() ? pGravity->Count() : count;
+			_count = count > pGravity->count() ? pGravity->count() : count;
 			_eR = pGravity->R();
 			_eMu = pGravity->Mu();
 			size_t dim = 0;
 			for (size_t i = 0; i <= _count; ++i) dim += i + 1;
 			_harmonics.resize(dim);
-			std::memcpy(_harmonics.data(), pGravity->Harmonics().data(), sizeof(std::pair<double, double>) * dim);
+			std::memcpy(_harmonics.data(), pGravity->harmonics().data(), sizeof(std::pair<double, double>) * dim);
 		}
 
 		GeoPotential::GeoPotential(const GeoPotential& gp)

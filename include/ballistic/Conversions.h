@@ -1,12 +1,21 @@
 #pragma once
 #include "general/GeneralConstants.h"
 #include "general/Geometry.h"
+#include "general/Times.h"
 
 namespace ball
 {
 	namespace space
 	{
 		using namespace general;
+
+		// Conversion julian date to julian centures since 2000/1/1 12:00:00.
+		// jd - julian date related to midnight.
+		inline double JD2000_date_to_centures(const time::JD& jd)
+		{
+			return ((jd - time::JD2000).to_double()) / 36525;
+		}
+
 		// The height calculation from GCS position and geo parameters.
 		// rad - a radius of Earth's equator.
 		// fl - the flatening of Earth.
@@ -60,22 +69,42 @@ namespace ball
 			return std::pow(mu * T * T / (4 * math::PI * math::PI), 1.0 / 3);
 		}
 
-		// Convertion the vector from orthogonal geocentral coordinate system to spherical
-		inline geometry::RBL GCS_ortho_to_spher(const geometry::XYZ& xyz)
+		// Convertion the vector from orthogonal coordinate system to spherical
+		inline geometry::RBL CS_ortho_to_spher(const geometry::XYZ& xyz)
 		{
 			return geometry::RBL(
 				xyz.length(),
 				std::atan2(xyz.Z, std::sqrt(xyz.X * xyz.X + xyz.Y * xyz.Y)),
 				std::atan2(xyz.Y, xyz.X));
 		}
-		// Convertion the vector from spherical geocentral coordinate system to orthogonal
-		inline geometry::XYZ GCS_spher_to_ortho(const geometry::RBL& rbl)
+		// Convertion the vector from spherical coordinate system to orthogonal
+		inline geometry::XYZ CS_spher_to_ortho(const geometry::RBL& rbl)
 		{
 			double cosB = std::cos(rbl.B);
 			return geometry::XYZ(
 				rbl.R * std::cos(rbl.L) * cosB,
 				rbl.R * std::sin(rbl.L) * cosB,
 				rbl.R * std::sin(rbl.B));
+		}
+		// Convertion from absolute to Grinweech orthogonal coordinate system.
+		// t - astro time
+		inline geometry::XYZ ACS_to_GCS(const geometry::XYZ& coords, const double t)
+		{
+			const double sint{ std::sin(t) }, cost{ std::cos(t) };
+			return geometry::XYZ(
+				coords.X * cost + coords.Y * sint,
+				coords.Y * cost - coords.X * sint,
+				coords.Z);
+		}
+		// Convertion from Grinweech to absolute orthogonal coordinate system.
+		// t - astro time
+		inline geometry::XYZ GCS_to_ACS(const geometry::XYZ& coords, const double t)
+		{
+			const double sint{ std::sin(t) }, cost{ std::cos(t) };
+			return geometry::XYZ(
+				coords.X * cost - coords.Y * sint,
+				coords.Y * cost + coords.X * sint,
+				coords.Z);
 		}
 	}
 }

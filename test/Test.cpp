@@ -10,7 +10,7 @@
 #include <RungeKuttaIntegrator.h>
 #include <EGM96.h>
 #include <GeoPotential.h>
-#include "PzForecast.h"
+#include "PAForecast.h"
 
 using namespace ball;
 using namespace space;
@@ -35,9 +35,9 @@ void test_conversions()
 
 	auto xyzPosition{ XYZ(-4688980.289, -11060428.914, 238914.750) };
 	std::cout << "Initial position in orthogonal: " << xyzPosition << std::endl;
-	auto rblPosition = GCS_ortho_to_spher(xyzPosition);
+	auto rblPosition = CS_ortho_to_spher(xyzPosition);
 	std::cout << "Converted to spherical: " << rblPosition << std::endl;
-	auto xyzCheck = GCS_spher_to_ortho(rblPosition);
+	auto xyzCheck = CS_spher_to_ortho(rblPosition);
 	std::cout << "Converted to orthogonal: " << xyzCheck << std::endl;
 
 }
@@ -74,7 +74,7 @@ void test_atmosphere()
 	for (size_t i = 0; i < 60; ++i)
 	{
 		std::cout << "h = " << height << "; rho = " <<
-			atmosphere.density(GCS_spher_to_ortho(rblPosition), ball::time::JD2000) << std::endl;
+			atmosphere.density(CS_spher_to_ortho(rblPosition), ball::time::JD2000) << std::endl;
 		height += delta;
 		rblPosition.R += delta;
 	}
@@ -106,12 +106,12 @@ void TestBallistic1()
 	};
 	auto pGravity{ std::make_shared<PZ90>() };
 	auto pAtmosphere{ std::make_shared<StaticAtmosphere81>(pGravity->R(), pGravity->Fl()) };
-	auto pForecast{ std::make_shared<PzForecast>(pGravity, 16, pAtmosphere) };
+	auto pForecast{ std::make_shared<PAForecast<StaticAtmosphere81>>(pGravity, 16, pAtmosphere) };
 	auto index{ 1 };
 	auto calculate = [pForecast](const State& x, const double dt, const size_t index)
 	{
 		//std::this_thread::sleep_for(std::chrono::seconds(10));
-		auto ball = Ballistic<PzForecast>(pForecast);
+		auto ball = Ballistic<PAForecast<StaticAtmosphere81>>(pForecast);
 		auto pBall = &ball;
 		auto printfile = [pBall](const std::string& filename) {
 			auto fout = std::ofstream(filename);
@@ -126,8 +126,7 @@ void TestBallistic1()
 			std::cout << index << " Successfully calculated!\n";
 			printfile(filename);
 		}
-		catch (std::exception& ex)
-		{
+		catch (std::exception& ex) {
 			std::cout << index << " An error occured! " << ex.what() << "\n";
 			printfile(filename);
 		}
@@ -153,8 +152,8 @@ void TestBallistic2()
 		1) };
 	auto pGravity{ std::make_shared<EGM96>() };
 	auto pAtmosphere{ std::make_shared<StaticAtmosphere81>(pGravity->R(), pGravity->Fl()) };
-	auto pForecast{ std::make_shared<PzForecast>(pGravity, 50, pAtmosphere) };
-	auto ball = Ballistic<PzForecast>(pForecast);
+	auto pForecast{ std::make_shared<PAForecast<StaticAtmosphere81>>(pGravity, 50, pAtmosphere) };
+	auto ball = Ballistic<PAForecast<StaticAtmosphere81>>(pForecast);
 	std::cout << "initial point:\n";
 	std::cout << "T: " << x0.T.to_datetime() << "; x: " <<
 		x0.Vec << "; s = " << x0.Sb << "; loop = " << x0.Loop << std::endl;
@@ -166,8 +165,7 @@ void TestBallistic2()
 		for (size_t i = 0; i < sizeof(deltas) / sizeof(deltas[0]); ++i)
 		{
 			list[i].add_seconds(deltas[i]);
-			if (!ball.get_point(list[i], x))
-			{
+			if (!ball.get_point(list[i], x)) {
 				std::cout << "Failed to calculate the point for time: " << list[i].to_datetime() << std::endl;
 			}
 			else {
@@ -177,14 +175,21 @@ void TestBallistic2()
 		}
 		
 	}
-	catch (std::exception& ex)
-	{
+	catch (std::exception& ex) {
 		std::cout << "An error occured during the calculation! " << ex.what() << std::endl;
 	}
 }
 
 void test_ballistic()
 {
-	TestBallistic1();
-	TestBallistic2();
+	/*TestBallistic1();
+	TestBallistic2();*/
+	std::vector<double> v{ 1, 2, 3, 9 };
+	std::allocator<double> a;
+	const size_t n = 10;
+	double* d = a.allocate(n);
+	for (size_t i = 0; i < n; ++i) {
+		a.construct(d + i, i + 1);
+	}
+	a.deallocate(d, n);
 }

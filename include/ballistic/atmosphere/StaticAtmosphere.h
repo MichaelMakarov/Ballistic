@@ -6,7 +6,7 @@ namespace ball
 {
     namespace space
     {
-        class StaticAtmosphere81 : public IAtmosphere
+        class StaticAtmosphere81 : public IAtmosphere<StaticAtmosphere81>
         {
         public:
             StaticAtmosphere81(
@@ -16,7 +16,7 @@ namespace ball
 
             double density(
                 const geometry::XYZ& position,
-                const time::JD& time) const override;
+                const time::JD& time) const;
         private:
             const double _eR, _eFl;
 

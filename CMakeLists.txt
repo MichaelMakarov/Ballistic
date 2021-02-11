@@ -7,6 +7,7 @@ project(Ballistic)
 include_directories(
 	${CMAKE_CURRENT_SOURCE_DIR}/include/ballistic/atmosphere
 	${CMAKE_CURRENT_SOURCE_DIR}/include/ballistic/gravity
+	${CMAKE_CURRENT_SOURCE_DIR}/include/ballistic/solar
 	${CMAKE_CURRENT_SOURCE_DIR}/include/ballistic/integrators
 	${CMAKE_CURRENT_SOURCE_DIR}/include/ballistic/forecasts
 	${CMAKE_CURRENT_SOURCE_DIR}/include/ballistic
@@ -20,13 +21,17 @@ add_library(
 	src/Ballistic.cpp
 
 	src/GeoPotential.cpp
+
 	src/StaticAtmosphere.cpp
+
 	src/EGM96.cpp
 	src/JGM3.cpp 
 	src/PZ90.cpp
 	
-	src/PzForecast.cpp
- )
+	src/AngForecast.cpp
+	
+	src/SolarModel.cpp
+)
 
 add_subdirectory(
 	${CMAKE_CURRENT_SOURCE_DIR}/libs/General
