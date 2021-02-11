@@ -10,15 +10,15 @@ namespace ball
 		~RKIntegrator() {}
 
 		void integrate(
-			const geometry::PV& x0,
-			const time::JD& t0,
+			const general::math::PV& x0,
+			const general::time::JD& t0,
 			const double step,
-			geometry::PV& xk,
-			time::JD& tk) const
+			general::math::PV& xk,
+			general::time::JD& tk) const
 		{
 			const double 	step_2 = 0.5 * step,
 							step_6 = step / 6;
-			time::JD		t{ t0 };
+			general::time::JD		t{ t0 };
 			t.add_seconds(static_cast<int>(step_2));
 			tk = t0;
 			tk.add_seconds(static_cast<int>(step));

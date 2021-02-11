@@ -8,7 +8,6 @@ namespace ball
 {
 	namespace space
 	{
-		using namespace general;
 		// Class represents a geopotential with its properties
 		class GeoPotential
 		{
@@ -32,9 +31,9 @@ namespace ball
 			GeoPotential& operator = (GeoPotential&& gp) noexcept;
 
 			// Calculating the value of Earth's potential
-			double operator () (const geometry::RBL& coordinates) const;
+			double operator () (const general::math::Vec3& coordinates) const;
 			// Calculating the acceleration by the potential
-			geometry::XYZ acceleration(const geometry::XYZ& coordinates) const;
+			general::math::Vec3 acceleration(const general::math::Vec3& coordinates) const;
 		};
 	}
 }

@@ -54,14 +54,14 @@ namespace ball
 			return *this;
 		}
 
-		double GeoPotential::operator () (const geometry::RBL& coordinates) const
+		double GeoPotential::operator () (const general::math::Vec3& coordinates) const
 		{
 			double result{ 0 };
-			const double sinphi{ std::sin(coordinates.B) };
-			const double cosphi{ std::cos(coordinates.B) };
-			const double R_r{ _eR / coordinates.R };
-			const double coslambda{ std::cos(coordinates.L) };
-			const double sinlambda{ std::sin(coordinates.L) };
+			const double sinphi{ std::sin(coordinates.Y) };
+			const double cosphi{ std::cos(coordinates.Y) };
+			const double R_r{ _eR / coordinates.X };
+			const double coslambda{ std::cos(coordinates.Z) };
+			const double sinlambda{ std::sin(coordinates.Z) };
 			double mult{ 1 };
 			double b;
 			size_t k{ 3 };
@@ -97,13 +97,11 @@ namespace ball
 				}
 				mult *= R_r;
 			}
-			return _eMu / coordinates.R * result;
+			return _eMu / coordinates.X * result;
 		}
 
-		geometry::XYZ GeoPotential::acceleration(const geometry::XYZ& xyzCoord) const
+		general::math::Vec3 GeoPotential::acceleration(const general::math::Vec3& xyzCoord) const
 		{
-			using namespace geometry;
-
 			// usefull constants related to current position
 
 			const double r{ xyzCoord.length() };
@@ -121,15 +119,15 @@ namespace ball
 			// the derivatives
 
 			const auto xyzdR{ xyzCoord / r };
-			const auto xyzdPhi{	XYZ(-xyzCoord.X * zxyr,	-xyzCoord.Y * zxyr,	xy / r) };
-			const auto xyzdLambda{ XYZ(-xyzCoord.Y / xy, xyzCoord.X / xy, 0) };
+			const auto xyzdPhi{ general::math::Vec3(-xyzCoord.X * zxyr,	-xyzCoord.Y * zxyr,	xy / r) };
+			const auto xyzdLambda{ general::math::Vec3(-xyzCoord.Y / xy, xyzCoord.X / xy, 0) };
 
 			// the temporary values
 
 			size_t k{ 3 };
 			double poly, dpoly;
 			double kcs, ksc;
-			RBL rbldU_n, rbldU_sum;
+			general::math::Vec3 rbldU_n, rbldU_sum;
 
 			auto delta = [](const size_t m) { return m == 0 ? 0.5 : 1.0; };
 
@@ -159,7 +157,7 @@ namespace ball
 			k = 3;
 			for (size_t n = 2; n <= _count; ++n)
 			{
-				rbldU_n.B = rbldU_n.L = rbldU_n.R = 0.0;
+				rbldU_n.Y = rbldU_n.Z = rbldU_n.X = 0.0;
 				for (size_t m = 0; m <= n; ++m)
 				{
 					// current Legendre function
@@ -170,26 +168,26 @@ namespace ball
 					kcs = _harmonics[k].first * cs[m].first + _harmonics[k].second * cs[m].second;
 					// Snm * cos(m * L) - Cnm * sin(m * L)
 					ksc = _harmonics[k].second * cs[m].first - _harmonics[k].first * cs[m].second;
-					rbldU_n.R -= poly * kcs;
-					rbldU_n.B += dpoly * kcs;
-					rbldU_n.L += poly * ksc * m;
+					rbldU_n.X -= poly * kcs;
+					rbldU_n.Y += dpoly * kcs;
+					rbldU_n.Z += poly * ksc * m;
 					k++;
 				}
-				rbldU_sum.R += (n + 1) * mult * rbldU_n.R;
-				rbldU_sum.B += mult * rbldU_n.B;
-				rbldU_sum.L += mult * rbldU_n.L;
+				rbldU_sum.X += (n + 1) * mult * rbldU_n.X;
+				rbldU_sum.Y += mult * rbldU_n.Y;
+				rbldU_sum.Z += mult * rbldU_n.Z;
 				mult *= R_r;
 			}
-			rbldU_sum.L /= cosphi;
-			rbldU_sum.R *= mu_r_2;
-			rbldU_sum.B *= mu_r_2;
-			rbldU_sum.L *= mu_r_2;
+			rbldU_sum.Z /= cosphi;
+			rbldU_sum.X *= mu_r_2;
+			rbldU_sum.Y *= mu_r_2;
+			rbldU_sum.Z *= mu_r_2;
 
-			auto centr_pot{ XYZ(-mu_r_2 * xyzdR.X, -mu_r_2 * xyzdR.Y, -mu_r_2 * xyzdR.Z) };
-			auto harm_pot = XYZ(
-				rbldU_sum.R * xyzdR.X + rbldU_sum.B * xyzdPhi.X + rbldU_sum.L * xyzdLambda.X,
-				rbldU_sum.R * xyzdR.Y + rbldU_sum.B * xyzdPhi.Y + rbldU_sum.L * xyzdLambda.Y,
-				rbldU_sum.R * xyzdR.Z + rbldU_sum.B * xyzdPhi.Z
+			auto centr_pot{ general::math::Vec3(-mu_r_2 * xyzdR.X, -mu_r_2 * xyzdR.Y, -mu_r_2 * xyzdR.Z) };
+			auto harm_pot = general::math::Vec3(
+				rbldU_sum.X * xyzdR.X + rbldU_sum.Y * xyzdPhi.X + rbldU_sum.Z * xyzdLambda.X,
+				rbldU_sum.X * xyzdR.Y + rbldU_sum.Y * xyzdPhi.Y + rbldU_sum.Z * xyzdLambda.Y,
+				rbldU_sum.X * xyzdR.Z + rbldU_sum.Y * xyzdPhi.Z
 			);
 			return centr_pot + harm_pot;
 		}

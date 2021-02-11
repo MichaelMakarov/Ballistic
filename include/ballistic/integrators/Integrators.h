@@ -11,7 +11,7 @@ namespace ball
 		Integrator() {}
 		~Integrator() {}
 
-		std::function<geometry::PV(const geometry::PV&, const time::JD& t)> func;
+		std::function<general::math::PV(const general::math::PV&, const general::time::JD& t)> func;
 	};
 
 	template<class InvType>
@@ -22,11 +22,11 @@ namespace ball
 		~SinglestepIntegrator() {}
 
 		void integrate(
-			const geometry::PV& x0,
-			const time::JD& t0,
+			const general::math::PV& x0,
+			const general::time::JD& t0,
 			const double step,
-			geometry::PV& xk,
-			time::JD& tk) const
+			general::math::PV& xk,
+			general::time::JD& tk) const
 		{
 			static_cast<const InvType*>(this)->integrate(x0, t0, step, xk, tk);
 		}
@@ -43,10 +43,10 @@ namespace ball
 		~MultistepIntegrator() {}
 
 		void integrate(
-			std::pair<geometry::PV, time::JD>* pData,
+			std::pair<general::math::PV, general::time::JD>* pData,
 			const double step,
-			geometry::PV& xk,
-			time::JD& tk) const
+			general::math::PV& xk,
+			general::time::JD& tk) const
 		{
 			static_cast<const InvType*>(this)->integrate(pData, step, xk, tk);
 		}

@@ -15,8 +15,8 @@ namespace ball
             ~StaticAtmosphere81() {}
 
             double density(
-                const geometry::XYZ& position,
-                const time::JD& time) const;
+                const general::math::Vec3& position,
+                const general::time::JD& time) const;
         private:
             const double _eR, _eFl;
 

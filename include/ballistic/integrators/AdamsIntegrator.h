@@ -34,17 +34,14 @@ namespace ball
 		~AdamsIntegrator() {}
 
 		void integrate(
-			std::pair<geometry::PV, time::JD>* pData,
+			std::pair<general::math::PV, general::time::JD>* pData,
 			const double step,
-			geometry::PV& xk,
-			time::JD& tk) const
+			general::math::PV& xk,
+			general::time::JD& tk) const
 		{
-			using namespace time;
-			using namespace geometry;
-
 			xk.P1 = xk.P2 = xk.P3 = xk.V1 = xk.V2 = xk.V3 = 0;
 			auto xt{ _b[0] * func(pData->first, pData->second) };
-			PV xb;
+			general::math::PV xb;
 			for (size_t i = 1; i < 8; ++i)
 			{
 				pData++;

@@ -6,14 +6,13 @@ namespace ball
 {
     namespace space
     {
-        using namespace general;
         template<class AtmosphereType>
         class IAtmosphere
         {
         public:
             virtual double density(
-                const geometry::XYZ& position,
-                const time::JD& time) const
+                const general::math::Vec3& position,
+                const general::time::JD& time) const
             {
                 return static_cast<const AtmosphereType*>(this)->density(position, time);
             }

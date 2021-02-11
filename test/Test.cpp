@@ -33,28 +33,28 @@ void test_conversions()
 {
 	std::cout << "\n...Test conversions...\n";
 
-	auto xyzPosition{ XYZ(-4688980.289, -11060428.914, 238914.750) };
+	auto xyzPosition{ general::math::Vec3(-4688980.289, -11060428.914, 238914.750) };
 	std::cout << "Initial position in orthogonal: " << xyzPosition << std::endl;
 	auto rblPosition = CS_ortho_to_spher(xyzPosition);
 	std::cout << "Converted to spherical: " << rblPosition << std::endl;
 	auto xyzCheck = CS_spher_to_ortho(rblPosition);
 	std::cout << "Converted to orthogonal: " << xyzCheck << std::endl;
-
 }
 
 void test_geopotential()
 {
+	using namespace general;
 	std::cout << "\n...Test geopotential...\n";
 
 	std::cout << std::setprecision(16);
 	auto gp{ GeoPotential(std::move(std::unique_ptr<EGM96>{ new EGM96() }), 16) };
-	double delta = ball::math::deg_to_rad(5);
+	double delta = math::deg_to_rad(5);
 	double latitude{ 0 };
-	double longitude{ ball::math::deg_to_rad(349.45) };
+	double longitude{ math::deg_to_rad(349.45) };
 	double radius{ 6378137.000 + 5.63755000000E+06 };
 	for (size_t i = 0; i < 60; ++i)
 	{
-		auto position{ RBL(radius, latitude, longitude) };
+		auto position{ math::Vec3(radius, latitude, longitude) };
 		std::cout << "U(" << position << ") = " << gp(position) << std::endl;
 		latitude += 0.1 * delta;
 		longitude += delta;
@@ -63,25 +63,27 @@ void test_geopotential()
 
 void test_atmosphere()
 {
+	using namespace general;
 	std::cout << "\n...Test atmosphere...\n";
 
 	EGM96 gm;
 	auto atmosphere{ StaticAtmosphere81(gm.R(), gm.Fl()) };
 	double delta = 1000.0;
 	double height{ 10 };
-	auto rblPosition{ RBL(gm.R() + height, 0, ball::math::deg_to_rad(349.45)) };
+	auto rblPosition{ math::Vec3(gm.R() + height, 0, math::deg_to_rad(349.45)) };
 	std::cout << "Position: " << rblPosition << std::endl;
 	for (size_t i = 0; i < 60; ++i)
 	{
 		std::cout << "h = " << height << "; rho = " <<
-			atmosphere.density(CS_spher_to_ortho(rblPosition), ball::time::JD2000) << std::endl;
+			atmosphere.density(CS_spher_to_ortho(rblPosition), time::JD2000) << std::endl;
 		height += delta;
-		rblPosition.R += delta;
+		rblPosition.X += delta;
 	}
 }
 
 void TestBallistic1()
 {
+	using namespace general::time;
 	std::cout << "\n...Test ballistic 1...\n";
 
 	std::vector<State> list {
@@ -89,7 +91,7 @@ void TestBallistic1()
 			-5173447.1334, 4100505.6444, 0,
 			-368.2895847, -575.7154581, 7689.0963483,
 			0.018,
-			JD(42162.430574375001015) + time::JD1899,
+			JD(42162.430574375001015) + general::time::JD1899,
 			1),
 		State(
 			-3369338.2137, 5689531.5193, 0.0,
@@ -141,6 +143,7 @@ void TestBallistic1()
 
 void TestBallistic2()
 {
+	using namespace general::time;
 	std::cout << "\n...Test ballistic 2...\n";
 	std::cout << std::setprecision(15);
 
@@ -173,7 +176,6 @@ void TestBallistic2()
 					x.Vec << "; s = " << x.Sb << "; loop = " << x.Loop << std::endl;
 			}
 		}
-		
 	}
 	catch (std::exception& ex) {
 		std::cout << "An error occured during the calculation! " << ex.what() << std::endl;
@@ -182,8 +184,8 @@ void TestBallistic2()
 
 void test_ballistic()
 {
-	/*TestBallistic1();
-	TestBallistic2();*/
+	TestBallistic1();
+	TestBallistic2();
 	std::vector<double> v{ 1, 2, 3, 9 };
 	std::allocator<double> a;
 	const size_t n = 10;

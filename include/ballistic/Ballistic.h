@@ -12,8 +12,6 @@
 namespace ball
 {
 	using namespace space;
-	using namespace geometry;
-	using namespace time;
 		
 	// Object provides the functionality for ballistic calculation.
 	// The trajectory of the center of mass for the space vehicle can be calculated.
@@ -22,7 +20,7 @@ namespace ball
 	{
 	private:
 		std::shared_ptr<Forecast<ForecastType>> _pForecast;
-		std::vector<std::pair<PV, JD>> _trajectory;
+		std::vector<std::pair<general::math::PV, general::time::JD>> _trajectory;
 		std::vector<size_t> _loops;
 		double _deltatime;
 
@@ -36,12 +34,12 @@ namespace ball
 			const SinglestepIntegrator<SinglestepIntType>& integrator)
 		{
 			auto x0{ _trajectory[0] }; 
-			std::pair<PV, JD> xk;
+			std::pair<general::math::PV, general::time::JD> xk;
 			size_t loop{ _loops[0] };
 			bool intersection;
 			const size_t n{ static_cast<size_t>(continueStep / startStep) };
 			const double step{ continueStep / n };
-			const double dt{ step / time::SEC_PER_DAY };
+			const double dt{ step / general::time::SEC_PER_DAY };
 			for (size_t i = 0; i < index; ++i)
 			{
 				for (size_t k = 0; k < n; ++k)
@@ -107,7 +105,7 @@ namespace ball
 		// Throws runtime error when height is out of bounds (MinHeight, MaxHeight).
 		void Run(
 			const State& x0,
-			const JD& tk,
+			const general::time::JD& tk,
 			SinglestepIntegrator<SinglestepIntType>& singlestep_int,
 			MultistepIntegrator<MultistepIntType>& multistep_int,
 			const double startStep = 5.0,
@@ -120,7 +118,7 @@ namespace ball
 				throw std::invalid_argument("Invalid start step > continue step!");
 			if (tk <= x0.T)
 				throw std::invalid_argument("Invalid tk < tn!");
-			_deltatime = continueStep / SEC_PER_DAY;
+			_deltatime = continueStep / general::time::SEC_PER_DAY;
 			_pForecast->sBall = x0.Sb;
 			size_t index = _pMultiStepInt->degree() - 1;
 			size_t count = static_cast<size_t>((tk - x0.T) / _deltatime) + 1;
@@ -129,7 +127,7 @@ namespace ball
 
 			auto func = &Forecast<ForecastType>::function;
 			auto ptr = _pForecast.get();
-			auto function = [func, ptr](const PV& vec, const JD& time) {
+			auto function = [func, ptr](const general::math::PV& vec, const general::time::JD& time) {
 				return (ptr->*func)(vec, time);
 			};
 			multistep_int.func = function;
@@ -152,18 +150,18 @@ namespace ball
 		// Throws runtime error when height is out of bounds (MinHeight, MaxHeight).
 		void Run(
 			const State& x0,
-			const JD& tk,
+			const general::time::JD& tk,
 			const double startStep = 5.0,
 			const double continueStep = 30.0)
 		{
-			auto second{ 1.0 / time::SEC_PER_DAY };
+			auto second{ 1.0 / general::time::SEC_PER_DAY };
 			if (startStep < second || continueStep < second)
 				throw std::invalid_argument("Invalid time step (should be > 1.0 sec)!");
 			if (startStep > continueStep)
 				throw std::invalid_argument("Invalid start step > continue step!");
 			if (tk <= x0.T)
 				throw std::invalid_argument("Invalid tk < tn!");
-			_deltatime = continueStep / SEC_PER_DAY;
+			_deltatime = continueStep / general::time::SEC_PER_DAY;
 			_pForecast->sBall = x0.Sb;
 			SinglestepIntType singlestep_int;
 			MultistepIntType multistep_int;
@@ -174,7 +172,7 @@ namespace ball
 
 			auto func = &Forecast<ForecastType>::function;
 			auto ptr = _pForecast.get();
-			auto function = [func, ptr](const PV& vec, const JD& time) {
+			auto function = [func, ptr](const general::math::PV& vec, const general::time::JD& time) {
 				return (ptr->*func)(vec, time);
 			};
 			multistep_int.func = function;
@@ -191,7 +189,7 @@ namespace ball
 		// Calculating the state parameters.
 		// time - time of the trajectory point (should be between the start and final time of the integration);
 		// x - will be filled by the content.
-		bool get_point(const JD& time, State& x) const
+		bool get_point(const general::time::JD& time, State& x) const
 		{
 			using long_t = long long;
 			auto count{ _trajectory.size() };
@@ -210,7 +208,7 @@ namespace ball
 					));
 				// hence the interpolation performing
 				// P(t) = sum{n = 0..4} (mult{m = 0..4, m != n} (t - t_m)/(t_n - t_m)) x_n
-				PV result;
+				general::math::PV result;
 				double mult;
 				size_t indexn{ index };
 				for (size_t n = 0; n < 4; ++n)
@@ -233,7 +231,7 @@ namespace ball
 			return false;
 		}
 		// Returns the reference to current trajectory.
-		const std::vector<std::pair<PV, JD>>& trajectory() const
+		const std::vector<std::pair<general::math::PV, general::time::JD>>& trajectory() const
 		{
 			return _trajectory;
 		}

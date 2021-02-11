@@ -27,8 +27,8 @@ namespace ball
 		};
 
 		double StaticAtmosphere81::density(
-			const geometry::XYZ& position,
-			const time::JD& time) const
+			const general::math::Vec3& position,
+			const general::time::JD& time) const
 		{
 			double h = GCS_height_from_position(position, _eR, _eFl);
 			size_t i;
