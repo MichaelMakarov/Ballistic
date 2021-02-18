@@ -1,5 +1,5 @@
 #pragma once
-#include "Forecast.h"
+#include "TranslationModel.h"
 #include "gravity/GeoPotential.h"
 #include "atmosphere/Atmosphere.h"
 #include "Conversions.h"
@@ -8,7 +8,7 @@ namespace ball
 {
 	// A forecast implements atmosphere standard and geopotential model
 	template<class AtmType>
-	class PAForecast : public Forecast<PAForecast<AtmType>>
+	class PotAtmModel : public TranslationModel<PotAtmModel<AtmType>>
 	{
 	private:
 		GeoPotential _geopotential;
@@ -16,7 +16,7 @@ namespace ball
 		double _eW, _eFl, _eR;
 
 	public:
-		PAForecast(
+		PotAtmModel(
 			const std::shared_ptr<IEarth>& pGravity,
 			const size_t harmonics,
 			const std::shared_ptr<IAtmosphere<AtmType>>& pAtmosphere) :
@@ -26,16 +26,16 @@ namespace ball
 			_eFl{ pGravity->Fl() },
 			_eR{ pGravity->R() }
 		{}
-		PAForecast(const PAForecast& f) = default;
-		PAForecast(PAForecast&& f) noexcept : Forecast(f),
+		/*PotAtmModel(const PotAtmModel& f) = default;
+		PotAtmModel(PotAtmModel&& f) noexcept : TranslationModel<PotAtmModel<AtmType>>(f),
 			_geopotential{ std::move(f._geopotential) },
 			_pAtmosphere{ std::move(f._pAtmosphere) },
 			_eW{ f._eW }, _eFl{ f._eFl }, _eR{ f._eR }
-		{}
-		~PAForecast() = default;
+		{}*/
+		~PotAtmModel() = default;
 
-		PAForecast& operator = (const PAForecast& f) = default;
-		PAForecast& operator = (PAForecast&& f) noexcept
+		/*PotAtmModel& operator = (const PotAtmModel& f) = default;
+		PotAtmModel& operator = (PotAtmModel&& f) noexcept
 		{
 			_geopotential = std::move(f._geopotential);
 			_pAtmosphere = std::move(f._pAtmosphere);
@@ -44,32 +44,31 @@ namespace ball
 			_eR = f._eR;
 			_eW = _eR = _eFl = 0;
 			return *this;
-		}
+		}*/
 
 		// Acelerations calculation using current vector in GCS and time
 		general::math::PV function(const general::math::PV& vec, const general::time::JD& t)
 		{
-			general::math::PV ac(vec.V1, vec.V2, vec.V3, 0, 0, 0);
-			auto xyzPos{ general::math::Vec3(vec.P1, vec.P2, vec.P3) };
-			double r = xyzPos.length();
+			auto ac = general::math::PV(vec.Vel, general::math::Vec3());
+			double r = vec.Pos.length();
 			double r_2{ r * r };
 			double w_2{ _eW * _eW };
-			double h = GCS_height_from_position(xyzPos, _eR, _eFl);
-			if (h < MinHeight || h > MaxHeight)
+			double h = GCS_height_from_position(vec.Pos, _eR, _eFl);
+			if (h < this->MinHeight || h > this->MaxHeight)
 				throw std::runtime_error("Height is out of bounds!");
 			// geopotential aceleration with a centrifugal and a coriolis force
-			auto xyzAcPot{ _geopotential.acceleration(xyzPos) };
+			auto xyzAcPot{ _geopotential.acceleration(vec.Pos) };
 			// atmosphere aceleration a = v * s * rho, 
 			// s - a ballistic coefficient,
 			// v - a velocity of the vehicle,
 			// rho - a density of the atmosphere
-			double density = _pAtmosphere->density(xyzPos, t);
-			double v = std::sqrt(vec.V1 * vec.V1 + vec.V2 * vec.V2 + vec.V3 * vec.V3);
-			double acAtm = v * density * sBall;
+			double density = _pAtmosphere->density(vec.Pos, t);
+			double v = vec.Vel.length();
+			double acAtm = v * density * this->sBall;
 			// the addition all the components
-			ac.V1 = xyzAcPot.X + w_2 * vec.P1 + 2 * _eW * vec.V2 - acAtm * vec.V1;
-			ac.V2 = xyzAcPot.Y + w_2 * vec.P2 - 2 * _eW * vec.V1 - acAtm * vec.V2;
-			ac.V3 = xyzAcPot.Z - acAtm * vec.V3;
+			ac.Vel.X = xyzAcPot.X + w_2 * vec.Pos.X + 2 * _eW * vec.Vel.Y - acAtm * vec.Vel.X;
+			ac.Vel.Y = xyzAcPot.Y + w_2 * vec.Pos.Y - 2 * _eW * vec.Vel.X - acAtm * vec.Vel.Y;
+			ac.Vel.Z = xyzAcPot.Z - acAtm * vec.Vel.Z;
 			return ac;
 		}
 	};

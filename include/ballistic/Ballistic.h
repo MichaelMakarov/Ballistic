@@ -1,5 +1,5 @@
 ﻿#pragma once
-#include "Forecast.h"
+#include "TranslationModel.h"
 #include "Conversions.h"
 #include "Structures.h"
 #include "general/GeneralConstants.h"
@@ -15,11 +15,11 @@ namespace ball
 		
 	// Object provides the functionality for ballistic calculation.
 	// The trajectory of the center of mass for the space vehicle can be calculated.
-	template<class ForecastType>
+	template<class ModelType>
 	class Ballistic
 	{
 	private:
-		std::shared_ptr<Forecast<ForecastType>> _pForecast;
+		std::shared_ptr<TranslationModel<ModelType>> _pModel;
 		std::vector<std::pair<general::math::PV, general::time::JD>> _trajectory;
 		std::vector<size_t> _loops;
 		double _deltatime;
@@ -31,7 +31,7 @@ namespace ball
 			const double startStep, 
 			const double continueStep, 
 			const size_t index, 
-			const SinglestepIntegrator<SinglestepIntType>& integrator)
+			const SinglestepIntegrator<SinglestepIntType, general::math::PV>& integrator)
 		{
 			auto x0{ _trajectory[0] }; 
 			std::pair<general::math::PV, general::time::JD> xk;
@@ -45,7 +45,7 @@ namespace ball
 				for (size_t k = 0; k < n; ++k)
 				{
 					integrator.integrate(x0.first, x0.second, startStep, xk.first, xk.second);
-					intersection = std::signbit(x0.first.P3) == true && std::signbit(xk.first.P3) == false;
+					intersection = std::signbit(x0.first.Pos.Z) == true && std::signbit(xk.first.Pos.Z) == false;
 					x0 = xk;
 					loop += intersection ? 1 : 0;
 				}
@@ -58,27 +58,27 @@ namespace ball
 		void continue_run(
 			const double step,
 			const size_t index,
-			const MultistepIntegrator<MultistepIntType>& integrator)
+			const MultistepIntegrator<MultistepIntType, general::math::PV>& integrator)
 		{
 			bool intersection;
 			auto iter{ _trajectory.begin() };
 			for (size_t i = index; i < _trajectory.size() - 1; ++i)
 			{
 				integrator.integrate(iter._Ptr, step, _trajectory[i + 1].first, _trajectory[i + 1].second);
-				intersection = std::signbit(_trajectory[i].first.P3) == true && std::signbit(_trajectory[i + 1].first.P3) == false;
+				intersection = std::signbit(_trajectory[i].first.Pos.Z) == true && std::signbit(_trajectory[i + 1].first.Pos.Z) == false;
 				_loops[i + 1] = _loops[i] + intersection ? 1 : 0;
 				iter++;
 			}
 		}
 
 	public:
-		explicit Ballistic(const std::shared_ptr<Forecast<ForecastType>>& pForecast) :
-			_pForecast{pForecast},
+		explicit Ballistic(const std::shared_ptr<TranslationModel<ModelType>>& pModel) :
+			_pModel{ pModel },
 			_deltatime{ 0 }
 		{}
 		Ballistic(const Ballistic& ball) = delete;
 		Ballistic(Ballistic&& b) noexcept : 
-			_pForecast{ std::move(b._pForecast) },
+			_pModel{ std::move(b._pModel) },
 			_trajectory{ std::move(b._trajectory)},
 			_loops{ std::move(b._loops) },
 			_deltatime{ b._deltatime }
@@ -88,7 +88,7 @@ namespace ball
 		Ballistic& operator = (const Ballistic& ball) = delete;
 		Ballistic& operator = (Ballistic&& b) noexcept
 		{
-			_pForecast = std::move(b._pForecast);
+			_pModel = std::move(b._pModel);
 			_trajectory = std::move(b._trajectory);
 			_loops = std::move(b._loops);
 			_deltatime = b._deltatime;
@@ -96,7 +96,7 @@ namespace ball
 			return *this;
 		}
 
-		template<class MultistepIntType = AdamsIntegrator<>, class SinglestepIntType = RKIntegrator<>>
+		template<class MultistepIntType, class SinglestepIntType>
 		// Calculating the trajectory.
 		// x0 - initial conditions;
 		// tk - final time;
@@ -106,27 +106,27 @@ namespace ball
 		void Run(
 			const State& x0,
 			const general::time::JD& tk,
-			SinglestepIntegrator<SinglestepIntType>& singlestep_int,
-			MultistepIntegrator<MultistepIntType>& multistep_int,
-			const double startStep = 5.0,
-			const double continueStep = 30.0)
+			SinglestepIntegrator<SinglestepIntType, general::math::PV>& singlestep_int,
+			MultistepIntegrator<MultistepIntType, general::math::PV>& multistep_int,
+			const double startstep = 5.0,
+			const double continuestep = 30.0)
 		{
-			auto second{ 1.0 / time::SEC_PER_DAY };
-			if (startStep < second || continueStep < second)
+			auto second{ 1.0 / general::time::SEC_PER_DAY };
+			if (startstep < second || continuestep < second)
 				throw std::invalid_argument("Invalid time step (should be > 1.0 sec)!");
-			if (startStep > continueStep)
+			if (startstep > continuestep)
 				throw std::invalid_argument("Invalid start step > continue step!");
 			if (tk <= x0.T)
 				throw std::invalid_argument("Invalid tk < tn!");
-			_deltatime = continueStep / general::time::SEC_PER_DAY;
-			_pForecast->sBall = x0.Sb;
-			size_t index = _pMultiStepInt->degree() - 1;
+			_deltatime = continuestep / general::time::SEC_PER_DAY;
+			_pModel->sBall = x0.Sb;
+			size_t index = multistep_int.degree() - 1;
 			size_t count = static_cast<size_t>((tk - x0.T) / _deltatime) + 1;
 			_trajectory.resize(count);
 			_loops.resize(count);
 
-			auto func = &Forecast<ForecastType>::function;
-			auto ptr = _pForecast.get();
+			auto func = &TranslationModel<ModelType>::function;
+			auto ptr = _pModel.get();
 			auto function = [func, ptr](const general::math::PV& vec, const general::time::JD& time) {
 				return (ptr->*func)(vec, time);
 			};
@@ -136,10 +136,51 @@ namespace ball
 			_trajectory[0] = { x0.Vec, x0.T };
 			_loops[0] = x0.Loop;
 			// performing initial calculations
-			start_run(startStep, continueStep, index, singlestep_int);
+			start_run(startstep, continuestep, index, singlestep_int);
 			// performing remaining calculations
-			continue_run(continueStep, index, multistep_int);
+			continue_run(continuestep, index, multistep_int);
 		}
+
+		template<class MultistepIntType, class SinglestepIntType>
+		void Run(
+			const State& x0, 
+			const general::time::JD& tk,
+			SinglestepIntegrator<SinglestepIntType, general::math::PV>&& singlestep_int,
+			MultistepIntegrator<MultistepIntType, general::math::PV>&& multistep_int,
+			const double startstep = 5.0,
+			const double continuestep = 30.0)
+		{
+			Run<MultistepIntType, SinglestepIntType>(x0, tk, singlestep_int, multistep_int, startstep, continuestep);
+			//auto second{ 1.0 / general::time::SEC_PER_DAY };
+			//if (startstep < second || continuestep < second)
+			//	throw std::invalid_argument("Invalid time step (should be > 1.0 sec)!");
+			//if (startstep > continuestep)
+			//	throw std::invalid_argument("Invalid start step > continue step!");
+			//if (tk <= x0.T)
+			//	throw std::invalid_argument("Invalid tk < tn!");
+			//_deltatime = continuestep / general::time::SEC_PER_DAY;
+			//_pForecast->sBall = x0.Sb;
+			//size_t index = multistep_int.degree() - 1;
+			//size_t count = static_cast<size_t>((tk - x0.T) / _deltatime) + 1;
+			//_trajectory.resize(count);
+			//_loops.resize(count);
+
+			//auto func = &TranslationModel<ModelType>::function;
+			//auto ptr = _pForecast.get();
+			//auto function = [func, ptr](const general::math::PV& vec, const general::time::JD& time) {
+			//	return (ptr->*func)(vec, time);
+			//};
+			//multistep_int.func = function;
+			//singlestep_int.func = function;
+
+			//_trajectory[0] = { x0.Vec, x0.T };
+			//_loops[0] = x0.Loop;
+			//// performing initial calculations
+			//start_run(startstep, continuestep, index, singlestep_int);
+			//// performing remaining calculations
+			//continue_run(continuestep, index, multistep_int);
+		}
+
 
 		template<class MultistepIntType = AdamsIntegrator<>, class SinglestepIntType = RKIntegrator<>>
 		// Calculating the trajectory.
@@ -162,7 +203,7 @@ namespace ball
 			if (tk <= x0.T)
 				throw std::invalid_argument("Invalid tk < tn!");
 			_deltatime = continueStep / general::time::SEC_PER_DAY;
-			_pForecast->sBall = x0.Sb;
+			_pModel->sBall = x0.Sb;
 			SinglestepIntType singlestep_int;
 			MultistepIntType multistep_int;
 			size_t index = multistep_int.degree() - 1;
@@ -170,8 +211,8 @@ namespace ball
 			_trajectory.resize(count);
 			_loops.resize(count);
 
-			auto func = &Forecast<ForecastType>::function;
-			auto ptr = _pForecast.get();
+			auto func = &TranslationModel<ModelType>::function;
+			auto ptr = _pModel.get();
 			auto function = [func, ptr](const general::math::PV& vec, const general::time::JD& time) {
 				return (ptr->*func)(vec, time);
 			};
@@ -198,7 +239,7 @@ namespace ball
 			if (index < count)
 			{
 				// checking the value sign of the z coordinate of the nearest point
-				bool intersection = std::signbit(_trajectory[index].first.P3) == true;
+				bool intersection = std::signbit(_trajectory[index].first.Pos.Z) == true;
 				const size_t loop{ _loops[index] };
 				// get the index of the first point for the interpolation
 				index = static_cast<size_t>(
@@ -224,8 +265,8 @@ namespace ball
 					}
 					result += mult * _trajectory[indexn++].first;
 				}
-				intersection = intersection && std::signbit(result.P3) == false;
-				x = State(result, _pForecast->sBall, time, loop + intersection ? 1 : 0);
+				intersection = intersection && std::signbit(result.Pos.Z) == false;
+				x = State(result, _pModel->sBall, time, loop + intersection ? 1 : 0);
 				return true;
 			}
 			return false;

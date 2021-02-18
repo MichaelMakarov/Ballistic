@@ -10,7 +10,7 @@
 #include <RungeKuttaIntegrator.h>
 #include <EGM96.h>
 #include <GeoPotential.h>
-#include "PAForecast.h"
+#include "PotAtmModel.h"
 
 using namespace ball;
 using namespace space;
@@ -108,12 +108,12 @@ void TestBallistic1()
 	};
 	auto pGravity{ std::make_shared<PZ90>() };
 	auto pAtmosphere{ std::make_shared<StaticAtmosphere81>(pGravity->R(), pGravity->Fl()) };
-	auto pForecast{ std::make_shared<PAForecast<StaticAtmosphere81>>(pGravity, 16, pAtmosphere) };
+	auto pForecast{ std::make_shared<PotAtmModel<StaticAtmosphere81>>(pGravity, 16, pAtmosphere) };
 	auto index{ 1 };
 	auto calculate = [pForecast](const State& x, const double dt, const size_t index)
 	{
 		//std::this_thread::sleep_for(std::chrono::seconds(10));
-		auto ball = Ballistic<PAForecast<StaticAtmosphere81>>(pForecast);
+		auto ball = Ballistic<PotAtmModel<StaticAtmosphere81>>(pForecast);
 		auto pBall = &ball;
 		auto printfile = [pBall](const std::string& filename) {
 			auto fout = std::ofstream(filename);
@@ -124,7 +124,10 @@ void TestBallistic1()
 		};
 		auto filename = "ball test mma version " + std::to_string(index) + ".txt";
 		try {
-			ball.Run(x, x.T + dt);
+			ball.Run<AdamsIntegrator<general::math::PV>, RKIntegrator<general::math::PV>>(
+				x, x.T + dt, 
+				RKIntegrator<general::math::PV>(), 
+				AdamsIntegrator<general::math::PV>());
 			std::cout << index << " Successfully calculated!\n";
 			printfile(filename);
 		}
@@ -134,8 +137,7 @@ void TestBallistic1()
 		}
 	};
 	auto tasks{ std::vector<std::future<void>>(list.size()) };
-	for (size_t i = 0; i < list.size(); ++i)
-	{
+	for (size_t i = 0; i < list.size(); ++i) {
 		tasks[i] = std::async(std::launch::async, calculate, list[i], 1.0, index++);
 	}
 	
@@ -155,13 +157,16 @@ void TestBallistic2()
 		1) };
 	auto pGravity{ std::make_shared<EGM96>() };
 	auto pAtmosphere{ std::make_shared<StaticAtmosphere81>(pGravity->R(), pGravity->Fl()) };
-	auto pForecast{ std::make_shared<PAForecast<StaticAtmosphere81>>(pGravity, 50, pAtmosphere) };
-	auto ball = Ballistic<PAForecast<StaticAtmosphere81>>(pForecast);
+	auto pForecast{ std::make_shared<PotAtmModel<StaticAtmosphere81>>(pGravity, 50, pAtmosphere) };
+	auto ball = Ballistic<PotAtmModel<StaticAtmosphere81>>(pForecast);
 	std::cout << "initial point:\n";
 	std::cout << "T: " << x0.T.to_datetime() << "; x: " <<
 		x0.Vec << "; s = " << x0.Sb << "; loop = " << x0.Loop << std::endl;
 	try {
-		ball.Run(x0, x0.T + 0.5);
+		ball.Run<AdamsIntegrator<general::math::PV>, RKIntegrator<general::math::PV>>(
+			x0, x0.T + 0.5,
+			RKIntegrator<general::math::PV>(),
+			AdamsIntegrator<general::math::PV>());
 		State x;
 		JD list[] { x0.T, x0.T, x0.T, x0.T };
 		int deltas[] { 17, 300, 3600, 86330 };

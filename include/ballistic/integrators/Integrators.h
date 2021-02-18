@@ -2,56 +2,71 @@
 #include "general/Geometry.h"
 #include "general/Times.h"
 #include <functional>
+#include <type_traits>
+#include <concepts>
 
 namespace ball
 {
-	template<class ... ArgsType>
+	template<class T> concept Arithmetic = 
+		std::is_default_constructible<T>::value &&
+		requires (T a, double b) {
+			{ a * b };
+			{ a / b };
+			{ a *= b };
+			{ a /= b };
+			{ b * a };
+		} && requires (T a, T b) { 
+			{ a += b };
+			{ a -= b };
+			{ a + b };
+			{ a - b };
+		};
+
+	template<class R>
 	class Integrator
 	{
 	public:
-		Integrator() {}
-		~Integrator() {}
+		Integrator() = default;
+		~Integrator() = default;
 
-		std::function<general::math::PV(const general::math::PV&, const general::time::JD& t, const ArgsType& ...)> func;
+		std::function<R(const R&, const general::time::JD& t)> func;
 	};
 
-	template<class InvType, class ... ArgsType>
-	class SinglestepIntegrator : public Integrator<ArgsType ...>
+	template<class IntType, Arithmetic R>
+	class SinglestepIntegrator : public Integrator<R>
 	{
 	public:
-		SinglestepIntegrator() : Integrator<ArgsType ...>() {}
-		~SinglestepIntegrator() {}
+		SinglestepIntegrator() : Integrator<R>() {}
+		~SinglestepIntegrator() = default;
 
 		void integrate(
-			const general::math::PV& x0,
+			const R& x0,
 			const general::time::JD& t0,
 			const double step,
-			general::math::PV& xk,
-			general::time::JD& tk,
-			const ArgsType& ... args) const
+			R& xk,
+			general::time::JD& tk) const
 		{
-			static_cast<const InvType*>(this)->integrate(x0, t0, step, xk, tk, args ...);
+			static_cast<const IntType*>(this)->integrate(x0, t0, step, xk, tk);
 		}
 	};
 
-	template<class InvType, class ... ArgsType>
-	class MultistepIntegrator : public Integrator<ArgsType ...>
+	template<class IntType, Arithmetic R>
+	class MultistepIntegrator : public Integrator<R>
 	{
 	private:
 		const size_t _degree;
 
 	public:
-		explicit MultistepIntegrator(const size_t degree = 1) : Integrator<ArgsType ...>(), _degree(degree) {}
+		explicit MultistepIntegrator(const size_t degree) : Integrator<R>(), _degree(degree) {}
 		~MultistepIntegrator() = default;
 
 		void integrate(
-			std::pair<general::math::PV, general::time::JD>* pData,
+			std::pair<R, general::time::JD>* pData,
 			const double step,
-			general::math::PV& xk,
-			general::time::JD& tk,
-			const ArgsType& ... args) const
+			R& xk,
+			general::time::JD& tk) const
 		{
-			static_cast<const InvType*>(this)->integrate(pData, step, xk, tk, args ...);
+			static_cast<const IntType*>(this)->integrate(pData, step, xk, tk);
 		}
 
 		size_t degree() const {	return _degree;	}
