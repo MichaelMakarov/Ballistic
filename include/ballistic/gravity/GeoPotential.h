@@ -6,34 +6,36 @@
 
 namespace ball
 {
-	namespace space
+	// Class represents a geopotential with its properties
+	class GeoPotential
 	{
-		// Class represents a geopotential with its properties
-		class GeoPotential
-		{
-		private:
-			std::vector<std::pair<double, double>> _harmonics;
-			size_t _count;
-			double _eR, _eMu;
+	private:
+		std::vector<std::pair<double, double>> _harmonics;
+		std::vector<std::pair<double, double>> _cs;
+		std::vector<double> _pnm;
+		size_t _count;
+		double _eR, _eMu;
 
-		public:
-			// Creating the geopotential.
-			// pPotential - a pointer to the Earth's gravity model.
-			// harmonics - a number of spherical functions in the gravity model to consider.
-			GeoPotential(
-				const std::shared_ptr<IEarth> pPotential,
-				const size_t harmonics);
-			GeoPotential(const GeoPotential& gp);
-			GeoPotential(GeoPotential&& gp) noexcept;
-			~GeoPotential() noexcept {}
+		void calc_trigonometric(const double coslambda, const double sinlambda);
+		void calc_polynoms(const double cosphi, const double sinphi);
 
-			GeoPotential& operator = (const GeoPotential& gp);
-			GeoPotential& operator = (GeoPotential&& gp) noexcept;
+	public:
+		// Creating the geopotential.
+		// pPotential - a pointer to the Earth's gravity model.
+		// harmonics - a number of spherical functions in the gravity model to consider.
+		GeoPotential(
+			const IEarth& emodel,
+			const size_t harmonics);
+		GeoPotential(const GeoPotential& gp);
+		GeoPotential(GeoPotential&& gp) noexcept;
+		~GeoPotential() noexcept = default;
 
-			// Calculating the value of Earth's potential
-			double operator () (const general::math::Vec3& coordinates) const;
-			// Calculating the acceleration by the potential
-			general::math::Vec3 acceleration(const general::math::Vec3& coordinates) const;
-		};
-	}
+		GeoPotential& operator = (const GeoPotential& gp);
+		GeoPotential& operator = (GeoPotential&& gp) noexcept;
+
+		// Calculating the value of Earth's potential
+		double operator () (const general::math::Vec3& coordinates);
+		// Calculating the acceleration by the potential
+		general::math::Vec3 acceleration(const general::math::Vec3& coordinates);
+	};
 }

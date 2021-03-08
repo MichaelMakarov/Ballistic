@@ -6,7 +6,7 @@ namespace ball
 {
 	// A forecast interface provides a function for the aceleration calculation.
 	// ForecastType is a type of the class inherits the interface is used for static polymorphism
-	template<class ModelType>
+	template<class Model>
 	class TranslationModel
 	{
 	public:
@@ -17,7 +17,7 @@ namespace ball
 			const general::math::PV& vec,
 			const general::time::JD& t)
 		{
-			return static_cast<ModelType*>(this)->function(vec, t);
+			return static_cast<Model*>(this)->function(vec, t);
 		}
 
 	public:

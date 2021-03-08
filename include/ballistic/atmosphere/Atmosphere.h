@@ -4,18 +4,15 @@
 
 namespace ball
 {
-    namespace space
+    template<class AtmosphereType>
+    class IAtmosphere
     {
-        template<class AtmosphereType>
-        class IAtmosphere
+    public:
+        double density(
+            const general::math::Vec3& position,
+            const general::time::JD& time) const
         {
-        public:
-            virtual double density(
-                const general::math::Vec3& position,
-                const general::time::JD& time) const
-            {
-                return static_cast<const AtmosphereType*>(this)->density(position, time);
-            }
-        };
-    }
+            return static_cast<const AtmosphereType*>(this)->density(position, time);
+        }
+    };
 }

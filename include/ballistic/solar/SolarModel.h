@@ -4,38 +4,35 @@
 
 namespace ball
 {
-	namespace space
+	// Calculating the solar position in spherical absolute coordinate system
+	general::math::Vec3 SphACS_solar_position(const double T);
+	// Calculating the solar position in orthogonal absolute coordinate system
+	general::math::Vec3 ACS_solar_position(const double T);
+
+	// Solar gravity model
+	template<class SungravityModel>
+	class ISungravity
 	{
-		// Calculating the solar position in spherical absolute coordinate system
-		general::math::Vec3 SphACS_solar_position(const double T);
-		// Calculating the solar position in orthogonal absolute coordinate system
-		general::math::Vec3 ACS_solar_position(const double T);
-
-		// Solar gravity model
-		template<class SolarGravityType>
-		class ISolarGravity
+	public:
+		general::math::Vec3 acceleration(
+			const general::math::Vec3& solarpos,
+			const general::math::Vec3& pointpos) const
 		{
-		public:
-			general::math::Vec3 acceleration(
-				const general::math::Vec3& solarpos,
-				const general::math::Vec3& pointpos) const
-			{
-				return static_cast< const SolarGravityType>(this)->acceleration(solarpos, pointpos);
-			}
-		};
+			return static_cast<const SungravityModel>(this)->acceleration(solarpos, pointpos);
+		}
+	};
 
-		// Solar pressure model
-		template<class SolarLightType, class ... ArgsType>
-		class ISolarLight
+	// Solar pressure model
+	template<class SunlightModel, class ... ArgsType>
+	class ISunlight
+	{
+	public:
+		general::math::Vec3 acceleration(
+			const general::math::Vec3& solarpos,
+			const general::math::Vec3& pointpos,
+			const ArgsType ... args) const
 		{
-		public:
-			general::math::Vec3 acceleration(
-				const general::math::Vec3& solarpos, 
-				const general::math::Vec3& pointpos, 
-				const ArgsType ... args) const
-			{
-				return static_cast<const SolarLightType>(this)->acceleration(solarpos, pointpos, args ...);
-			}
-		};
-	}
+			return static_cast<const SunlightModel>(this)->acceleration(solarpos, pointpos, args ...);
+		}
+	};
 }

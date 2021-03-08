@@ -5,7 +5,7 @@
 namespace ball
 {
 	// A forecast implements solar radiation pressure
-	template<class ModelType>
+	template<class Model>
 	class RotationModel
 	{
 	public:
@@ -14,7 +14,7 @@ namespace ball
 			const general::math::Quaternion& rot,
 			const general::time::JD& t)
 		{
-			return static_cast<ModelType*>(this)->function(rot, t);
+			return static_cast<Model*>(this)->function(rot, t);
 		}
 	};
 }

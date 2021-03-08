@@ -18,6 +18,4 @@ namespace ball
             "; M = " << p.M << "; s = " << p.Sb << "; loop = " << p.Loop;
         return os;
     }
-
-    
 }

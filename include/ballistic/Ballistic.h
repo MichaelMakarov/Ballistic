@@ -1,6 +1,6 @@
 ﻿#pragma once
 #include "TranslationModel.h"
-#include "Conversions.h"
+//#include "Conversions.h"
 #include "Structures.h"
 #include "general/GeneralConstants.h"
 #include "Integrators.h"
@@ -11,50 +11,53 @@
 
 namespace ball
 {
-	using namespace space;
+	//using namespace space;
+
+	template<class T>
+	concept TransModel = std::is_base_of<TranslationModel<T>, T>::value;
+	template<class T>
+	concept TransSinglestepInt = std::is_base_of<SinglestepIntegrator<T, general::math::PV>, T>::value;
+	template<class T>
+	concept TransMultistepInt = std::is_base_of<MultistepIntegrator<T, general::math::PV>, T>::value;
 		
 	// Object provides the functionality for ballistic calculation.
 	// The trajectory of the center of mass for the space vehicle can be calculated.
-	template<class ModelType>
-	class Ballistic
+	template<TransModel Model>
+	class Forecast
 	{
 	private:
-		std::shared_ptr<TranslationModel<ModelType>> _pModel;
+		std::unique_ptr<TranslationModel<Model>> _pModel;
 		std::vector<std::pair<general::math::PV, general::time::JD>> _trajectory;
 		std::vector<size_t> _loops;
 		double _deltatime;
 
 	private:
-
-		template<class SinglestepIntType>
+		template<TransSinglestepInt SinglestepIntType>
 		void start_run(
-			const double startStep, 
-			const double continueStep, 
+			const double start_step, 
+			const double continue_step, 
 			const size_t index, 
 			const SinglestepIntegrator<SinglestepIntType, general::math::PV>& integrator)
 		{
 			auto x0{ _trajectory[0] }; 
 			std::pair<general::math::PV, general::time::JD> xk;
-			size_t loop{ _loops[0] };
+			//size_t loop{ _loops[0] };
 			bool intersection;
-			const size_t n{ static_cast<size_t>(continueStep / startStep) };
-			const double step{ continueStep / n };
+			const size_t n{ static_cast<size_t>(continue_step / start_step) };
+			const double step{ continue_step / n };
 			const double dt{ step / general::time::SEC_PER_DAY };
-			for (size_t i = 0; i < index; ++i)
-			{
-				for (size_t k = 0; k < n; ++k)
-				{
-					integrator.integrate(x0.first, x0.second, startStep, xk.first, xk.second);
+			for (size_t i = 0; i < index; ++i) {
+				for (size_t k = 0; k < n; ++k) {
+					integrator.integrate(x0.first, x0.second, start_step, xk.first, xk.second);
 					intersection = std::signbit(x0.first.Pos.Z) == true && std::signbit(xk.first.Pos.Z) == false;
 					x0 = xk;
-					loop += intersection ? 1 : 0;
+					_loops[i + 1] = _loops[i] + (intersection ? 1 : 0);
 				}
 				_trajectory[i + 1] = xk;
-				_loops[i + 1] = loop;
 			}
 		}
 
-		template<class MultistepIntType>
+		template<TransMultistepInt MultistepIntType>
 		void continue_run(
 			const double step,
 			const size_t index,
@@ -62,31 +65,34 @@ namespace ball
 		{
 			bool intersection;
 			auto iter{ _trajectory.begin() };
-			for (size_t i = index; i < _trajectory.size() - 1; ++i)
-			{
+			for (size_t i = index; i < _trajectory.size() - 1; ++i) {
 				integrator.integrate(iter._Ptr, step, _trajectory[i + 1].first, _trajectory[i + 1].second);
 				intersection = std::signbit(_trajectory[i].first.Pos.Z) == true && std::signbit(_trajectory[i + 1].first.Pos.Z) == false;
-				_loops[i + 1] = _loops[i] + intersection ? 1 : 0;
+				_loops[i + 1] = _loops[i] + (intersection ? 1 : 0);
 				iter++;
 			}
 		}
 
 	public:
-		explicit Ballistic(const std::shared_ptr<TranslationModel<ModelType>>& pModel) :
-			_pModel{ pModel },
+		/// <summary>
+		/// Initializing a ballistic object 
+		/// </summary>
+		/// <param name="pModel">A pointer to the model of the linear movement</param>
+		explicit Forecast(std::unique_ptr<TranslationModel<Model>>&& pModel) :
+			_pModel{ std::move(pModel) },
 			_deltatime{ 0 }
 		{}
-		Ballistic(const Ballistic& ball) = delete;
-		Ballistic(Ballistic&& b) noexcept : 
+		Forecast(const Forecast& ball) = delete;
+		Forecast(Forecast&& b) noexcept : 
 			_pModel{ std::move(b._pModel) },
 			_trajectory{ std::move(b._trajectory)},
 			_loops{ std::move(b._loops) },
 			_deltatime{ b._deltatime }
 		{}
-		~Ballistic() = default;
+		~Forecast() = default;
 
-		Ballistic& operator = (const Ballistic& ball) = delete;
-		Ballistic& operator = (Ballistic&& b) noexcept
+		Forecast& operator = (const Forecast& ball) = delete;
+		Forecast& operator = (Forecast&& b) noexcept
 		{
 			_pModel = std::move(b._pModel);
 			_trajectory = std::move(b._trajectory);
@@ -96,14 +102,20 @@ namespace ball
 			return *this;
 		}
 
-		template<class MultistepIntType, class SinglestepIntType>
-		// Calculating the trajectory.
-		// x0 - initial conditions;
-		// tk - final time;
-		// startStep - period for the single step integrator in seconds;
-		// continueStep - period for the multi step integrator in seconds.
-		// Throws runtime error when height is out of bounds (MinHeight, MaxHeight).
-		void Run(
+		/// <summary>
+		/// Run the trajectory calculation. 
+		/// Throws an exception when height is out of bounds (MinHeight, MaxHeight) or input arguments are invalid.
+		/// </summary>
+		/// <typeparam name="MultistepIntType">type of the multistep integrator that inherits the MultistepIntegrator base class</typeparam>
+		/// <typeparam name="SinglestepIntType">type of the multistep integrator that inherits the SinglestepIntegrator base class</typeparam>
+		/// <param name="x0">an initial point</param>
+		/// <param name="tk">final time of the calculation</param>
+		/// <param name="singlestep_int">a multistep intergrator that will be used</param>
+		/// <param name="multistep_int">a single step integrator that will be used to calculate initial points</param>
+		/// <param name="startstep">time step for the single step integrator</param>
+		/// <param name="continuestep">time step for the multistep integrator</param>
+		template<TransMultistepInt MultistepIntType, TransSinglestepInt SinglestepIntType>
+		void run(
 			const State& x0,
 			const general::time::JD& tk,
 			SinglestepIntegrator<SinglestepIntType, general::math::PV>& singlestep_int,
@@ -125,7 +137,7 @@ namespace ball
 			_trajectory.resize(count);
 			_loops.resize(count);
 
-			auto func = &TranslationModel<ModelType>::function;
+			auto func = &TranslationModel<Model>::function;
 			auto ptr = _pModel.get();
 			auto function = [func, ptr](const general::math::PV& vec, const general::time::JD& time) {
 				return (ptr->*func)(vec, time);
@@ -141,8 +153,20 @@ namespace ball
 			continue_run(continuestep, index, multistep_int);
 		}
 
-		template<class MultistepIntType, class SinglestepIntType>
-		void Run(
+		/// <summary>
+		/// Run the trajectory calculation. 
+		/// Throws an exception when height is out of bounds (MinHeight, MaxHeight) or input arguments are invalid.
+		/// </summary>
+		/// <typeparam name="MultistepIntType">type of the multistep integrator that inherits the MultistepIntegrator base class</typeparam>
+		/// <typeparam name="SinglestepIntType">type of the multistep integrator that inherits the SinglestepIntegrator base class</typeparam>
+		/// <param name="x0">an initial point</param>
+		/// <param name="tk">final time of the calculation</param>
+		/// <param name="singlestep_int">a multistep intergrator that will be used</param>
+		/// <param name="multistep_int">a single step integrator that will be used to calculate initial points</param>
+		/// <param name="startstep">time step for the single step integrator</param>
+		/// <param name="continuestep">time step for the multistep integrator</param>
+		template<TransMultistepInt MultistepIntType, TransSinglestepInt SinglestepIntType>
+		void run(
 			const State& x0, 
 			const general::time::JD& tk,
 			SinglestepIntegrator<SinglestepIntType, general::math::PV>&& singlestep_int,
@@ -150,81 +174,7 @@ namespace ball
 			const double startstep = 5.0,
 			const double continuestep = 30.0)
 		{
-			Run<MultistepIntType, SinglestepIntType>(x0, tk, singlestep_int, multistep_int, startstep, continuestep);
-			//auto second{ 1.0 / general::time::SEC_PER_DAY };
-			//if (startstep < second || continuestep < second)
-			//	throw std::invalid_argument("Invalid time step (should be > 1.0 sec)!");
-			//if (startstep > continuestep)
-			//	throw std::invalid_argument("Invalid start step > continue step!");
-			//if (tk <= x0.T)
-			//	throw std::invalid_argument("Invalid tk < tn!");
-			//_deltatime = continuestep / general::time::SEC_PER_DAY;
-			//_pForecast->sBall = x0.Sb;
-			//size_t index = multistep_int.degree() - 1;
-			//size_t count = static_cast<size_t>((tk - x0.T) / _deltatime) + 1;
-			//_trajectory.resize(count);
-			//_loops.resize(count);
-
-			//auto func = &TranslationModel<ModelType>::function;
-			//auto ptr = _pForecast.get();
-			//auto function = [func, ptr](const general::math::PV& vec, const general::time::JD& time) {
-			//	return (ptr->*func)(vec, time);
-			//};
-			//multistep_int.func = function;
-			//singlestep_int.func = function;
-
-			//_trajectory[0] = { x0.Vec, x0.T };
-			//_loops[0] = x0.Loop;
-			//// performing initial calculations
-			//start_run(startstep, continuestep, index, singlestep_int);
-			//// performing remaining calculations
-			//continue_run(continuestep, index, multistep_int);
-		}
-
-
-		template<class MultistepIntType = AdamsIntegrator<>, class SinglestepIntType = RKIntegrator<>>
-		// Calculating the trajectory.
-		// x0 - initial conditions;
-		// tk - final time;
-		// startStep - period for the single step integrator in seconds;
-		// continueStep - period for the multi step integrator in seconds.
-		// Throws runtime error when height is out of bounds (MinHeight, MaxHeight).
-		void Run(
-			const State& x0,
-			const general::time::JD& tk,
-			const double startStep = 5.0,
-			const double continueStep = 30.0)
-		{
-			auto second{ 1.0 / general::time::SEC_PER_DAY };
-			if (startStep < second || continueStep < second)
-				throw std::invalid_argument("Invalid time step (should be > 1.0 sec)!");
-			if (startStep > continueStep)
-				throw std::invalid_argument("Invalid start step > continue step!");
-			if (tk <= x0.T)
-				throw std::invalid_argument("Invalid tk < tn!");
-			_deltatime = continueStep / general::time::SEC_PER_DAY;
-			_pModel->sBall = x0.Sb;
-			SinglestepIntType singlestep_int;
-			MultistepIntType multistep_int;
-			size_t index = multistep_int.degree() - 1;
-			size_t count = static_cast<size_t>((tk - x0.T) / _deltatime) + 1;
-			_trajectory.resize(count);
-			_loops.resize(count);
-
-			auto func = &TranslationModel<ModelType>::function;
-			auto ptr = _pModel.get();
-			auto function = [func, ptr](const general::math::PV& vec, const general::time::JD& time) {
-				return (ptr->*func)(vec, time);
-			};
-			multistep_int.func = function;
-			singlestep_int.func = function;
-
-			_trajectory[0] = { x0.Vec, x0.T };
-			_loops[0] = x0.Loop;
-			// performing initial calculations
-			start_run(startStep, continueStep, index, singlestep_int);
-			// performing remaining calculations
-			continue_run(continueStep, index, multistep_int);
+			run<MultistepIntType, SinglestepIntType>(x0, tk, singlestep_int, multistep_int, startstep, continuestep);
 		}
 
 		// Calculating the state parameters.
@@ -252,13 +202,10 @@ namespace ball
 				general::math::PV result;
 				double mult;
 				size_t indexn{ index };
-				for (size_t n = 0; n < 4; ++n)
-				{
+				for (size_t n = 0; n < 4; ++n) {
 					mult = 1.0;
-					for (size_t m = 0; m < 4; ++m)
-					{
-						if (m != n)
-						{
+					for (size_t m = 0; m < 4; ++m) {
+						if (m != n)	{
 							mult *= (time - _trajectory[index + m].second) /
 								(_trajectory[indexn].second - _trajectory[index + m].second);
 						}
@@ -276,7 +223,14 @@ namespace ball
 		{
 			return _trajectory;
 		}
-
-
 	};
+	/// <summary>
+	/// Fast creating ball class example
+	/// </summary>
+	/// <param name="pModel">a model of the movement</param>
+	template<TransModel Model>
+	constexpr auto create_forecast(std::unique_ptr<Model>&& pModel) -> Forecast<Model>
+	{
+		return Forecast<Model>(std::forward<std::unique_ptr<Model>>(pModel));
+	}
 }

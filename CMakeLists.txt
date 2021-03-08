@@ -34,7 +34,8 @@ add_library(
 
 	src/Parsers.cpp
 	src/Object.cpp
-)
+	"src/TrajectoryProxy.cpp"
+ )
 
 add_subdirectory(
 	${CMAKE_CURRENT_SOURCE_DIR}/libs/General
@@ -47,7 +48,13 @@ target_link_libraries(
 
 add_executable(
 	TestBallistic
-	test/Test.cpp)
+	test/Test.cpp
+)
+
+add_executable(
+	TestAdd
+	test/add.cpp
+)
 
 target_link_libraries(
 	TestBallistic

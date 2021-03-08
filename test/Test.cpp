@@ -10,22 +10,24 @@
 #include <RungeKuttaIntegrator.h>
 #include <EGM96.h>
 #include <GeoPotential.h>
-#include "PotAtmModel.h"
+#include "LowOrbModel.h"
+#include "TrajectoryProxy.h"
 
 using namespace ball;
-using namespace space;
 
 void test_conversions();
 void test_geopotential();
 void test_atmosphere();
 void test_ballistic();
+void test_trajectoryproxy();
 
 int main()
 {
-	test_conversions();
+	/*test_conversions();
 	test_geopotential();
 	test_atmosphere();
-	test_ballistic();
+	test_ballistic();*/
+	test_trajectoryproxy();
 	return 0;
 }
 
@@ -47,7 +49,7 @@ void test_geopotential()
 	std::cout << "\n...Test geopotential...\n";
 
 	std::cout << std::setprecision(16);
-	auto gp{ GeoPotential(std::move(std::unique_ptr<EGM96>{ new EGM96() }), 16) };
+	auto gp{ GeoPotential(EGM96(), 16) };
 	double delta = math::deg_to_rad(5);
 	double latitude{ 0 };
 	double longitude{ math::deg_to_rad(349.45) };
@@ -81,7 +83,7 @@ void test_atmosphere()
 	}
 }
 
-void TestBallistic1()
+void test_ballistic1()
 {
 	using namespace general::time;
 	std::cout << "\n...Test ballistic 1...\n";
@@ -106,14 +108,13 @@ void TestBallistic1()
 			JD(DateTime(2015, 6, 7, 10, 20, 1, 626)),
 			1)
 	};
-	auto pGravity{ std::make_shared<PZ90>() };
-	auto pAtmosphere{ std::make_shared<StaticAtmosphere81>(pGravity->R(), pGravity->Fl()) };
-	auto pForecast{ std::make_shared<PotAtmModel<StaticAtmosphere81>>(pGravity, 16, pAtmosphere) };
+	PZ90 earth_model;
+	auto pAtmosphere{ std::make_shared<StaticAtmosphere81>(earth_model.R(), earth_model.Fl()) };
 	auto index{ 1 };
-	auto calculate = [pForecast](const State& x, const double dt, const size_t index)
+	auto calculate = [earth_model, pAtmosphere](const State& x, const double dt, const size_t index)
 	{
 		//std::this_thread::sleep_for(std::chrono::seconds(10));
-		auto ball = Ballistic<PotAtmModel<StaticAtmosphere81>>(pForecast);
+		auto ball = create_forecast(std::make_unique<PotAtmModel>(earth_model, 16));
 		auto pBall = &ball;
 		auto printfile = [pBall](const std::string& filename) {
 			auto fout = std::ofstream(filename);
@@ -124,7 +125,7 @@ void TestBallistic1()
 		};
 		auto filename = "ball test mma version " + std::to_string(index) + ".txt";
 		try {
-			ball.Run<AdamsIntegrator<general::math::PV>, RKIntegrator<general::math::PV>>(
+			ball.run(
 				x, x.T + dt, 
 				RKIntegrator<general::math::PV>(), 
 				AdamsIntegrator<general::math::PV>());
@@ -143,7 +144,7 @@ void TestBallistic1()
 	
 }
 
-void TestBallistic2()
+void test_ballistic2()
 {
 	using namespace general::time;
 	std::cout << "\n...Test ballistic 2...\n";
@@ -155,15 +156,14 @@ void TestBallistic2()
 		0.018059454,
 		JD(42187, 0.321120925924333) + JD1899,
 		1) };
-	auto pGravity{ std::make_shared<EGM96>() };
-	auto pAtmosphere{ std::make_shared<StaticAtmosphere81>(pGravity->R(), pGravity->Fl()) };
-	auto pForecast{ std::make_shared<PotAtmModel<StaticAtmosphere81>>(pGravity, 50, pAtmosphere) };
-	auto ball = Ballistic<PotAtmModel<StaticAtmosphere81>>(pForecast);
+	EGM96 earth_model;
+	auto pAtmosphere{ std::make_shared<StaticAtmosphere81>(earth_model.R(), earth_model.Fl()) };
+	auto ball = create_forecast(std::make_unique<PotAtmModel>(earth_model, 50));
 	std::cout << "initial point:\n";
 	std::cout << "T: " << x0.T.to_datetime() << "; x: " <<
 		x0.Vec << "; s = " << x0.Sb << "; loop = " << x0.Loop << std::endl;
 	try {
-		ball.Run<AdamsIntegrator<general::math::PV>, RKIntegrator<general::math::PV>>(
+		ball.run(
 			x0, x0.T + 0.5,
 			RKIntegrator<general::math::PV>(),
 			AdamsIntegrator<general::math::PV>());
@@ -189,6 +189,134 @@ void TestBallistic2()
 
 void test_ballistic()
 {
-	TestBallistic1();
-	TestBallistic2();
+	test_ballistic1();
+	test_ballistic2();
+}
+
+void test_trajectoryproxy1()
+{
+	std::cout << "\n...Trajectory proxy test...\n";
+	using namespace general::time;
+	using namespace general::math;
+
+	std::cout << std::setprecision(15);
+
+	auto read_measurements = [](std::string& filepath) -> std::list<std::pair<PV, JD>> {
+		auto is = std::ifstream(filepath);
+		if (!is.is_open())
+			throw std::invalid_argument("Invalid istream!");
+		auto measurements = std::list<std::pair<PV, JD>>();
+		unsigned short date[3]{}, time[3]{};
+		PV coords;
+		char buf{ ' ' };
+		while (!is.eof()) {
+			is >> date[0] >> date[1] >> date[2] >>
+				time[0] >> time[1] >> time[2] >>
+				coords.Pos.X >> coords.Pos.Y >> coords.Pos.Z >>
+				coords.Vel.X >> coords.Vel.Y >> coords.Vel.Z;
+			coords *= 1e3;
+			measurements.push_back(std::make_pair(coords, JD(DateTime(date[2], date[1], date[0], time[0], time[1], time[2]))));
+			while (!is.eof() && buf != '\n')
+				is.read(&buf, 1);
+		}
+		is.close();
+		return measurements;
+	};
+
+	auto x0{ State(
+		-5173447.1334, 4100505.6444, 0,
+		-368.2895847, -575.7154581, 7689.0963483,
+		0.018,
+		JD(42162 + static_cast<size_t>(JD1899), 0.430574375001015),
+		1
+	) };
+	std::string directory = "D:\\User\\Desktop\\disser\\progs\\Ballistic\\resources\\ExampleDataTxt\\";
+	auto filepath = directory + "meas1.txt";
+	auto list = read_measurements(filepath);
+	auto measurements{ std::vector<std::pair<PV, JD>>(list.size()) };
+	size_t index{ 0 };
+	for (auto& v : list)
+		measurements[index++] = v;
+	PZ90 earth_model;
+	auto pAtmosphere{ std::make_shared<StaticAtmosphere81>(earth_model.R(), earth_model.Fl()) };
+	std::function<std::unique_ptr<PotAtmModel>()> make_model = 
+		[earth_model, pAtmosphere]() -> std::unique_ptr<PotAtmModel> {
+		return std::make_unique<PotAtmModel>(earth_model, 16);
+	};
+	std::cout << "initial x0: " << x0 << std::endl;
+	auto iter = refine_initpoint(x0, measurements, make_model);
+	std::cout << "refined x0: " << x0 << std::endl;
+}
+
+void test_trajectoryproxy2()
+{
+	using namespace general::math;
+	using namespace general::time;
+	auto read_measurements = [](const std::string& filepath) -> std::list<std::pair<PV, JD>> {
+		auto reader = std::ifstream(filepath);
+		if (!reader.is_open()) 
+			throw std::runtime_error("Failed to open file: " + filepath);
+		std::string date, time;
+		PV vec;
+		DateTime dt;
+		char buf{ 0 };
+		auto list = std::list<std::pair<PV, JD>>();
+		while (!reader.eof()) {
+			reader >> date >> time >>
+				vec.Pos.X >> vec.Pos.Y >> vec.Pos.Z >>
+				vec.Vel.X >> vec.Vel.Y >> vec.Vel.Z;
+			if (!try_parse(date + " " + time, dt, "d-M-y h:m:s.f"))
+				throw std::runtime_error("Failed to parse datetime from " + date + " " + time);
+			list.push_back(std::make_pair(vec, JD(dt)));
+			while (buf != '\n' && !reader.eof()) reader.read(&buf, 1);
+		}
+		reader.close();
+		return list;
+	};
+	auto save_to_file = [](const std::string& filepath, const State& x0, const std::vector<std::pair<PV, JD>>& arr) {
+		auto writer = std::ofstream(filepath);
+		if (!writer.is_open()) 
+			throw std::runtime_error("Failed to open file: " + filepath);
+		writer << x0 << "\n";
+		for (const auto& p : arr) writer << p.second.to_datetime() << " " << p.first << "\n";
+		writer.close();
+	};
+	try {
+		const std::string directory = "D:\\User\\Desktop\\disser\\progs\\Ballistic\\resources\\ExampleDataTxt\\";
+		const std::string filepath = directory + "meas 25_09_2019.txt";
+		auto list = read_measurements(filepath);
+		auto& measurements = list;//filter_measurements(list);
+		JD tk{ (--measurements.cend())->second };
+		auto x0{ State(measurements.cbegin()->first, 0, measurements.cbegin()->second, 1) };
+		PZ90 earth_model;
+		auto pAtmosphere{ std::make_shared<StaticAtmosphere81>(earth_model.R(), earth_model.Fl()) };
+		const size_t harmonics{ 16 };
+		std::function<std::unique_ptr<PotAtmModel>()> make_model =
+			[earth_model, pAtmosphere, harmonics]() -> std::unique_ptr<PotAtmModel> {
+			return std::make_unique<PotAtmModel>(earth_model, harmonics);
+		};
+		std::cout << "initial x0: " << x0 << std::endl;
+		auto iter = refine_initpoint(x0, measurements, make_model);
+		std::cout << "refined x0: " << x0 << std::endl;
+
+		auto ball = create_forecast(make_model());
+		ball.run(x0, tk, RKIntegrator<PV>(), AdamsIntegrator<PV>());
+		auto diversities = std::vector<std::pair<PV, JD>>(measurements.size());
+		State point;
+		size_t index = 0;
+		for (const auto& m : measurements) {
+			ball.get_point(m.second, point);
+			diversities[index++] = std::make_pair(m.first - point.Vec, m.second);
+		}
+		save_to_file(std::to_string(harmonics) + " harm filtered result of 08_06_2018.txt", x0, diversities);
+	}
+	catch (std::exception& ex) {
+		std::cout << ex.what() << std::endl;
+	}
+}
+
+void test_trajectoryproxy()
+{
+	//test_trajectoryproxy1();
+	test_trajectoryproxy2();
 }
