@@ -1,4 +1,5 @@
-#include "TrajectoryProxy.h"
+#include "AdjustTrajectory.h"
+#include "general/Polynomial.h"
 
 namespace ball
 {
@@ -11,18 +12,18 @@ namespace ball
 
 	std::list<std::pair<general::math::PV, general::time::JD>> filter_measurements(
 		std::list<std::pair<general::math::PV, general::time::JD>>& measurements,
-		const double dt)
+		const double dt,
+		const size_t polydegree)
 	{
 		using namespace general::math;
 		using namespace general::time;
 		if (measurements.size() < 2) return measurements;
 		measurements.sort([](std::pair<PV, JD>& f, std::pair<PV, JD>& s) { return f.second < s.second; });
 		const size_t vars{ 6 };
-		const size_t degree{ 4 };
+		const size_t degree{ polydegree };
 		const size_t sko{ 3 };
 		JD	t0{ measurements.cbegin()->second },
 			tk{ (--measurements.cend())->second };
-		//size_t count = static_cast<size_t>(std::ceil((tk - t0) / dt));
 		std::list<std::pair<PV, JD>> list, result;
 		tk = t0 + 2 * dt;
 		auto filter = [degree, vars, sko](const std::list<std::pair<PV, JD>>& list, std::list<std::pair<PV, JD>>& filtered) {
@@ -98,8 +99,9 @@ namespace ball
 
 	std::list<std::pair<general::math::PV, general::time::JD>> filter_measurements(
 		std::list<std::pair<general::math::PV, general::time::JD>>&& measurements,
-		const double dt)
+		const double dt,
+		const size_t polydegree)
 	{
-		return filter_measurements(measurements, dt);
+		return filter_measurements(measurements, dt, polydegree);
 	}
 }

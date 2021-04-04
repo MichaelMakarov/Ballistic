@@ -1,106 +1,90 @@
 #pragma once
-#include "general/GeneralConstants.h"
 #include "general/Geometry.h"
 #include "general/Times.h"
 
+
 namespace ball
 {
-	// Conversion julian date to julian centures since 2000/1/1 12:00:00.
-		// jd - julian date related to midnight.
-	inline double JD2000_date_to_centures(const general::time::JD& jd)
-	{
-		return ((jd - general::time::JD2000).to_double()) / 36525;
-	}
-
-	// The height calculation from GCS position and geo parameters.
-	// rad - a radius of Earth's equator.
-	// fl - the flatening of Earth.
-	inline double GCS_height_from_position(
-		const double x, const double y, const double z,
-		const double rad, const double fl)
-	{
-		double dist = std::sqrt(x * x + y * y + z * z);
-		return dist - rad * (1.0 - fl * z * z / dist / dist);
-	}
-	// The height calculation from GCS position and geo parameters.
-	// rad - a radius of Earth's equator.
-	// fl - the flatening of Earth.
-	inline double GCS_height_from_position(
+	/// <summary>
+	/// the height calculation from GCS position and the Earth's parameters
+	/// </summary>
+	/// <param name="pos">a point in GCS</param>
+	/// <param name="rad">the Earth's equator radius</param>
+	/// <param name="fl">the Earth's flatenning</param>
+	/// <returns>a height above the Earth's ellipsoid</returns>
+	double GCS_height_from_position(
 		const general::math::Vec3& pos,
-		const double rad, const double fl)
-	{
-		double dist = pos.length();
-		return dist - rad * (1.0 - fl * pos.Z * pos.Z / dist / dist);
-	}
-
+		const double rad, const double fl);
 	// True anomaly calculation using the eccentric anomaly and the eccentricity.
-	inline double trueanomaly_from_eccentric(const double E, const double e)
-	{
-		double cosv = (std::cos(E) - e) / (1 - e * std::cos(E)),
-			sinv = std::sqrt(1 - e * e) * std::sin(E) / (1 - e * std::cos(E));
-		return std::atan2(sinv, cosv);
-	}
+	double trueanomaly_from_eccentric(const double E, const double e);
 	// True anomaly calculation using the mean anomaly and the eccentricity.
-	inline double trueanomaly_from_meananomaly(const double M, const double e)
-	{
-		return M + e * ((2 - 0.25 * e * e) * std::sin(M) +
-			e * (1.25 * std::sin(2 * M) +
-				13 / 12 * e * std::sin(3 * M)));
-	}
-
+	double trueanomaly_from_meananomaly(const double M, const double e);
 	// The radius calculation using the semimajor axis, the true anomaly and the eccentricity.
-	inline double radius_from_trueanomaly(const double a, const double v, const double e)
-	{
-		return a * (1 - e * e) / (1 + e * std::cos(v));
-	}
-
+	double radius_from_trueanomaly(const double a, const double v, const double e);
 	// The rotation period calculating using a semimajor axis and gravity parameter
-	inline double period_from_semimajoraxis(const double a, const double mu)
-	{
-		return 2 * general::math::PI * std::sqrt(a * a * a / mu);
-	}
+	double period_from_semimajoraxis(const double a, const double mu);
 	// The semimajor axis calculating using a rotation period and gravity parameter
-	inline double semimajoraxis_from_period(const double T, const double mu)
-	{
-		return std::pow(mu * T * T / (4 * general::math::PI * general::math::PI), 1.0 / 3);
-	}
+	double semimajoraxis_from_period(const double T, const double mu);
 
-	// Convertion the vector from orthogonal coordinate system to spherical
-	inline general::math::Vec3 CS_ortho_to_spher(const general::math::Vec3& xyz)
-	{
-		return general::math::Vec3(
-			xyz.length(),
-			std::atan2(xyz.Z, std::sqrt(xyz.X * xyz.X + xyz.Y * xyz.Y)),
-			std::atan2(xyz.Y, xyz.X));
-	}
-	// Convertion the vector from spherical coordinate system to orthogonal
-	// rbl = (R, B, L) vector
-	inline general::math::Vec3 CS_spher_to_ortho(const general::math::Vec3& rbl)
-	{
-		const double cosB = std::cos(rbl.Y);
-		return general::math::Vec3(
-			rbl.X * std::cos(rbl.Z) * cosB,
-			rbl.X * std::sin(rbl.Z) * cosB,
-			rbl.X * std::sin(rbl.Y));
-	}
-	// Convertion from absolute to Grinweech orthogonal coordinate system.
-	// t - astro time
-	inline general::math::Vec3 ACS_to_GCS(const general::math::Vec3& coords, const double t)
-	{
-		const double sint{ std::sin(t) }, cost{ std::cos(t) };
-		return general::math::Vec3(
-			coords.X * cost + coords.Y * sint,
-			coords.Y * cost - coords.X * sint,
-			coords.Z);
-	}
-	// Convertion from Grinweech to absolute orthogonal coordinate system.
-	// t - astro time
-	inline general::math::Vec3 GCS_to_ACS(const general::math::Vec3& coords, const double t)
-	{
-		const double sint{ std::sin(t) }, cost{ std::cos(t) };
-		return general::math::Vec3(
-			coords.X * cost - coords.Y * sint,
-			coords.Y * cost + coords.X * sint,
-			coords.Z);
-	}
+	/// <summary>
+	/// Conversion from orthogonal coordinate system to spherical
+	/// </summary>
+	/// <param name="vec"> - a vector (x,y,z)</param>
+	/// <returns>a vector (radius, latitude or inclination, longitude or ascension)</returns>
+	general::math::Vec3 CS_ort_to_sph(const general::math::Vec3& vec);
+	/// <summary>
+	/// Conversion the vector from spherical coordinate system to orthogonal
+	/// </summary>
+	/// <param name="vec"> - a vector  (radius, latitude or inclination, longitude or ascension)</param>
+	/// <returns>a vector (x,y,z)</returns>
+	general::math::Vec3 CS_sph_to_ort(const general::math::Vec3& vec);
+	/// <summary>
+	/// Conversion from GCS to ACS
+	/// </summary>
+	/// <param name="vec"> - a vector (x,y,z)</param>
+	/// <param name="t"> - sidereal time</param>
+	/// <returns></returns>
+	general::math::Vec3 ACS_to_GCS(const general::math::Vec3& vec, const double t);
+	/// <summary>
+	/// Conversion from GCS to ACS
+	/// </summary>
+	/// <param name="vec"> - a vector (x,y,z)</param>
+	/// <param name="t"> - sidereal time</param>
+	/// <returns></returns>
+	general::math::Vec3 GCS_to_ACS(const general::math::Vec3& vec, const double t);
+	/// <summary>
+	/// conversion from ecliptic coordinate system to absolute
+	/// </summary>
+	/// <param name="vec"> - a vector (x, y, z)</param>
+	/// <param name="e"> - ecliptic inclination</param>
+	/// <returns>a vector (x, y, z) in ACS</returns>
+	general::math::Vec3 ECS_to_ACS(const general::math::Vec3& vec, const double e);
+	/// <summary>
+	/// conversion from absolute coordinate system to ecliptic
+	/// </summary>
+	/// <param name="vec"> - a vector (x, y, z)</param>
+	/// <param name="e"> - ecliptic inclination</param>
+	/// <returns>a vector (x, y, z) in ECS</returns>
+	general::math::Vec3 ACS_to_ECS(const general::math::Vec3& vec, const double e);
+	/// <summary>
+	/// calculating the julian centures since 2000
+	/// </summary>
+	/// <param name="jd"> - julian date related to mig=dnight</param>
+	/// <returns></returns>
+	double jd_to_jc2000(const general::time::JD& jd);
+
+	/// <summary>
+	/// average sidereal time according RD50
+	/// </summary>
+	/// <param name="jd"> - julian date refered to midnight</param>
+	/// <param name="timezone"> - hours of timezone</param>
+	/// <returns>sidereal time in rad</returns>
+	double sidereal_time_avr(const general::time::JD& jd, const double timezone = 0);
+	/// <summary>
+	/// true sidereal time accoring RD50
+	/// </summary>
+	/// <param name="jd"> - julian date refered to midnight</param>
+	/// <param name="timezone"> - hours of timezone</param>
+	/// <returns>sidereal time in rad</returns>
+	double sidereal_time_true(const general::time::JD& jd, const double timezone = 0);
 }

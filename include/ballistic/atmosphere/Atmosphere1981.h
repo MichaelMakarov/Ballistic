@@ -1,16 +1,15 @@
 #pragma once
 #include "Atmosphere.h"
-#include <vector>
 
 namespace ball
 {
-    class StaticAtmosphere81 : public IAtmosphere<StaticAtmosphere81>
+    class Atmosphere1981 : public IAtmosphere<Atmosphere1981>
     {
     public:
-        StaticAtmosphere81(
+        Atmosphere1981(
             const double eR,
             const double eFl) : _eR{ eR }, _eFl{ eFl } {}
-        ~StaticAtmosphere81() {}
+        ~Atmosphere1981() = default;
 
         double density(
             const general::math::Vec3& position,
@@ -18,9 +17,9 @@ namespace ball
     private:
         const double _eR, _eFl;
 
-        static const std::vector<double> _height;
-        static const std::vector<double> _a0;
-        static const std::vector<double> _k1;
-        static const std::vector<double> _k2;
+        static const double _height[9];
+        static const double _a0[9];
+        static const double _k1[9];
+        static const double _k2[9];
     };
 }

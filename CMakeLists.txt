@@ -11,6 +11,7 @@ include_directories(
 	${CMAKE_CURRENT_SOURCE_DIR}/include/ballistic/integrators
 	${CMAKE_CURRENT_SOURCE_DIR}/include/ballistic/models
 	${CMAKE_CURRENT_SOURCE_DIR}/include/ballistic/utils3d
+	${CMAKE_CURRENT_SOURCE_DIR}/include/ballistic/celestrack
 	${CMAKE_CURRENT_SOURCE_DIR}/include/ballistic
 	${CMAKE_CURRENT_SOURCE_DIR}/libs/General/include
 )
@@ -23,41 +24,35 @@ add_library(
 
 	src/GeoPotential.cpp
 
-	src/StaticAtmosphere.cpp
+	src/Atmosphere1981.cpp
+	src/Atmosphere2004.cpp
 
 	src/EGM96.cpp
 	src/JGM3.cpp 
 	src/PZ90.cpp
 	
-	
 	src/SolarModel.cpp
 
 	src/Parsers.cpp
 	src/Object.cpp
-	"src/TrajectoryProxy.cpp"
- )
+
+	src/AdjustTrajectory.cpp
+
+	src/DataProviders.cpp
+	src/Conversions.cpp)
 
 add_subdirectory(
 	${CMAKE_CURRENT_SOURCE_DIR}/libs/General
 )
 
-target_link_libraries(
-	Ballistic
-	General
-)
+target_link_libraries(Ballistic	General)
 
-add_executable(
-	TestBallistic
-	test/Test.cpp
-)
 
-add_executable(
-	TestAdd
-	test/add.cpp
-)
+add_executable(TestConversions test/TestConversions.cpp)
+target_link_libraries(TestConversions Ballistic)
 
-target_link_libraries(
-	TestBallistic
-	Ballistic
-)
+add_executable(TestForecast test/TestForecast.cpp)
+target_link_libraries(TestForecast Ballistic)
 
+add_executable(TestAtmosphere test/TestAtmosphere.cpp)
+target_link_libraries(TestAtmosphere Ballistic)

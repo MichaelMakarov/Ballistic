@@ -1,11 +1,8 @@
 ﻿#pragma once
 #include "TranslationModel.h"
-//#include "Conversions.h"
 #include "Structures.h"
 #include "general/GeneralConstants.h"
 #include "Integrators.h"
-#include "AdamsIntegrator.h"
-#include "RungeKuttaIntegrator.h"
 #include <memory>
 #include <algorithm>
 
@@ -180,11 +177,11 @@ namespace ball
 		// Calculating the state parameters.
 		// time - time of the trajectory point (should be between the start and final time of the integration);
 		// x - will be filled by the content.
-		bool get_point(const general::time::JD& time, State& x) const
+		State get_point(const general::time::JD& time) const
 		{
 			using long_t = long long;
 			auto count{ _trajectory.size() };
-			if (count < 4) return false;
+			if (count < 4) throw std::length_error("Not enough points of trajectory!");
 			auto index = static_cast<size_t>((time - _trajectory[0].second) / _deltatime);
 			if (index < count)
 			{
@@ -213,10 +210,9 @@ namespace ball
 					result += mult * _trajectory[indexn++].first;
 				}
 				intersection = intersection && std::signbit(result.Pos.Z) == false;
-				x = State(result, _pModel->sBall, time, loop + intersection ? 1 : 0);
-				return true;
+				return State(result, _pModel->sBall, time, loop + intersection ? 1 : 0);
 			}
-			return false;
+			throw std::invalid_argument("Time out of bounds of integrated trajectory!");
 		}
 		// Returns the reference to current trajectory.
 		const std::vector<std::pair<general::math::PV, general::time::JD>>& trajectory() const
@@ -229,7 +225,7 @@ namespace ball
 	/// </summary>
 	/// <param name="pModel">a model of the movement</param>
 	template<TransModel Model>
-	constexpr auto create_forecast(std::unique_ptr<Model>&& pModel) -> Forecast<Model>
+	constexpr auto make_forecast(std::unique_ptr<Model>&& pModel) -> Forecast<Model>
 	{
 		return Forecast<Model>(std::forward<std::unique_ptr<Model>>(pModel));
 	}

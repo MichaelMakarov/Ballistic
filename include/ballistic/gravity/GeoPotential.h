@@ -10,7 +10,7 @@ namespace ball
 	class GeoPotential
 	{
 	private:
-		std::vector<std::pair<double, double>> _harmonics;
+		const std::vector<std::pair<double, double>>& _harmonics;
 		std::vector<std::pair<double, double>> _cs;
 		std::vector<double> _pnm;
 		size_t _count;
@@ -24,14 +24,15 @@ namespace ball
 		// pPotential - a pointer to the Earth's gravity model.
 		// harmonics - a number of spherical functions in the gravity model to consider.
 		GeoPotential(
+			const double eR, const double eMu,
 			const IEarth& emodel,
 			const size_t harmonics);
-		GeoPotential(const GeoPotential& gp);
+		GeoPotential(const GeoPotential& gp) = delete;
 		GeoPotential(GeoPotential&& gp) noexcept;
 		~GeoPotential() noexcept = default;
 
-		GeoPotential& operator = (const GeoPotential& gp);
-		GeoPotential& operator = (GeoPotential&& gp) noexcept;
+		GeoPotential& operator = (const GeoPotential& gp) = delete;
+		GeoPotential& operator = (GeoPotential&& gp) noexcept = default;
 
 		// Calculating the value of Earth's potential
 		double operator () (const general::math::Vec3& coordinates);

@@ -1,13 +1,11 @@
 #pragma once
 #include "Ballistic.h"
 #include "general/Matrix.h"
-#include "general/Polynom.h"
 #include <vector>
 #include <list>
 #include <utility>
 #include <string>
 #include <future>
-#include <iostream>
 
 
 namespace ball
@@ -22,18 +20,21 @@ namespace ball
 
 	std::list<std::pair<general::math::PV, general::time::JD>> filter_measurements(
 		std::list<std::pair<general::math::PV, general::time::JD>>& measurements,
-		const double dt = 300 / 86400.0);
+		const double dt = 300 / 86400.0,
+		const size_t polydegree = 4);
 
 	std::list<std::pair<general::math::PV, general::time::JD>> filter_measurements(
 		std::list<std::pair<general::math::PV, general::time::JD>>&& measurements,
-		const double dt = 300 / 86400.0);
+		const double dt = 300 / 86400.0,
+		const size_t polydegree = 4);
 
 	template<class Iterator>
 	std::list<std::pair<general::math::PV, general::time::JD>> filter_measurements(
 		Iterator first, Iterator last,
-		const double dt = 300 / 86400.0)
+		const double dt = 300 / 86400.0,
+		const size_t polydegree = 4)
 	{
-		return filter_measurements(std::list<std::pair<general::math::PV, general::time::JD>>(first, last), dt);
+		return filter_measurements(std::list<std::pair<general::math::PV, general::time::JD>>(first, last), dt, polydegree);
 	}
 
 	template<class T> concept StdContainer = requires (T ex) { 
@@ -54,27 +55,19 @@ namespace ball
 	{
 		using namespace general::math;
 		using namespace general::time;
-#define DEBUG_PROXY_STREAM std::cout
 
-#ifdef DEBUG_PROXY_STREAM
-		DEBUG_PROXY_STREAM << x0 << std::endl;
-		DEBUG_PROXY_STREAM << "measurements:\n";
-#endif
 		const size_t vars = static_cast<size_t>(type);
 		size_t iteration{ 0 };
 		const double deltas[7]{ 25, 25, 25, 0.025, 0.025, 0.025, 0.2 * 0.0007855809 };
 		general::time::JD tk;
 		for (auto iter = measurements.cbegin(); iter != measurements.cend(); ++iter) {
 			if (iter->second > tk) tk = iter->second;
-#ifdef DEBUG_PROXY_STREAM
-			DEBUG_PROXY_STREAM << iter->second.to_datetime() << "; " << iter->first << std::endl;
-#endif
 		}
 		auto B{ MatrixDyn(vars * measurements.size(), 7) };
 		auto L{ VectorDyn(vars * measurements.size()) };
 
 		auto calc_trajectory = [create_model, measurements](const State& x0, const JD& tk) -> std::vector<State> {
-			auto ball = create_forecast<Model>(create_model());
+			auto ball = make_forecast<Model>(create_model());
 			ball.run<AdamsIntegrator<PV>, RKIntegrator<PV>>(
 				x0, tk,
 				RKIntegrator<PV>(),
@@ -82,7 +75,7 @@ namespace ball
 			auto traj{ std::vector<State>(measurements.size()) };
 			size_t index{ 0 };
 			for (auto& m : measurements)
-				ball.get_point(m.second, traj[index++]);
+				traj[index++] = ball.get_point(m.second);
 			return traj;
 		};
 		auto calc_diversities = [measurements, vars](const std::vector<State>& trajectory, VectorDyn& vec) {
@@ -136,11 +129,6 @@ namespace ball
 				auto V = B * dx0 - L;
 				double mV = (V * V) / V.length();
 				double mL = (L * L) / L.length();
-#ifdef DEBUG_PROXY_STREAM
-				DEBUG_PROXY_STREAM << "iteration: " << iteration << std::endl;
-				DEBUG_PROXY_STREAM << "diversities: " << L << std::endl;
-				DEBUG_PROXY_STREAM << "dx0: " << dx0 << std::endl;
-#endif
 				if (std::abs((mV - mL) / mV) < 1e-2) break;
 			}
 			catch (const std::exception) { return 0; }

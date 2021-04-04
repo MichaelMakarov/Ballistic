@@ -13,33 +13,33 @@ namespace ball
 		};
 
 		
-		std::ifstream& load_blender_model(std::ifstream& filein, std::vector<Vertex>& vertices)
+		std::ifstream& load_blender_model(std::ifstream& fin, std::vector<Vertex>& vertices)
 		{
 			using namespace general::math;
-			if (!filein.is_open()) {
+			if (!fin.is_open()) {
 				throw std::invalid_argument("filein is not opened!");
 			}
 			size_t vertcount{ 0 }, textcount{ 0 }, normcount{ 0 }, facecount{ 0 };
 			char input;
-			filein.get(input);
-			while (!filein.eof()) {
+			fin.get(input);
+			while (!fin.eof()) {
 				if (input == 'v') {
-					filein.get(input);
+					fin.get(input);
 					if (input == ' ') vertcount++;
 					else if (input == 't') textcount++;
 					else if (input == 'n') normcount++;
 				}
 				else if (input == 'f') {
-					filein.get(input);
+					fin.get(input);
 					if (input == ' ') facecount++;
 				}
-				while (input != '\n') filein.get(input);
+				while (input != '\n') fin.get(input);
 				try {
-					filein.get(input);
+					fin.get(input);
 				} catch (std::ifstream::failure&) {}
 			}
-			filein.clear();
-			filein.seekg(0, filein.beg);
+			fin.clear();
+			fin.seekg(0, fin.beg);
 
 			auto points{ std::vector<Vec3>(vertcount) };
 			auto textures{ std::vector<Vec2>(textcount) };
@@ -47,20 +47,20 @@ namespace ball
 			auto faces{ std::vector<Face>(facecount) };
 			vertcount = textcount = normcount = facecount = 0;
 
-			filein.get(input);
-			while (!filein.eof()) {
+			fin.get(input);
+			while (!fin.eof()) {
 				if (input == 'v') {
-					filein.get(input);
+					fin.get(input);
 					if (input == ' ') {
-						filein >> points[vertcount];
+						fin >> points[vertcount];
 						points[vertcount].Z = -points[vertcount].Z;
 						vertcount++;
 					}
 					else if (input == 't') {
-						filein >> textures[textcount++];
+						fin >> textures[textcount++];
 					}
 					else if (input == 'n') {
-						filein >> normals[normcount];
+						fin >> normals[normcount];
 						normals[normcount].Z = -normals[normcount].Z;
 						normcount++;
 					}
@@ -68,7 +68,7 @@ namespace ball
 				else if (input == 'f') {
 					//filein.get(input);
 					if (input == ' ') {
-						filein >>
+						fin >>
 							input >> faces[facecount].Vertind[2] >>
 							input >> faces[facecount].Textind[2] >>
 							input >> faces[facecount].Normind[2] >>
@@ -81,9 +81,9 @@ namespace ball
 						facecount++;
 					}
 				}
-				while (input != '\n') filein.get(input);
+				while (input != '\n') fin.get(input);
 				try {
-					filein.get(input);
+					fin.get(input);
 				}
 				catch (std::ifstream::failure&) {}
 			}
@@ -110,7 +110,7 @@ namespace ball
 				vertices[i].Pos = points[vertcount];
 				vertices[i].Nor = points[normcount];
 			}
-			return filein;
+			return fin;
 		}
 	}
 }

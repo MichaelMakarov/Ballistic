@@ -29,56 +29,29 @@ namespace ball
 	}
 
 	GeoPotential::GeoPotential(
-		const IEarth& emodel,
-		const size_t count)
+		const double eMu, const double eR,
+		const IEarth& model,
+		const size_t count) : _harmonics{model.harmonics()}
 	{
-		_count = count > emodel.count() ? emodel.count() : count;
-		_eR = emodel.R();
-		_eMu = emodel.Mu();
+		_count = std::min(count, model.count());
+		_eR = eR;
+		_eMu = eMu;
 		size_t dim = 0;
 		for (size_t i = 0; i <= _count; ++i) dim += i + 1;
-		_harmonics.resize(dim);
-		std::memcpy(_harmonics.data(), emodel.harmonics().data(), sizeof(std::pair<double, double>) * dim);
+		/*_harmonics.resize(dim);
+		std::memcpy(_harmonics.data(), emodel.harmonics().data(), sizeof(std::pair<double, double>) * dim);*/
 		_cs.resize(_count + 1);
-		_pnm.resize(_harmonics.size());
+		_pnm.resize(dim);
 	}
 
-	GeoPotential::GeoPotential(const GeoPotential& gp)
+
+	GeoPotential::GeoPotential(GeoPotential&& gp) noexcept : _harmonics{ gp._harmonics }
 	{
 		_count = gp._count;
 		_eR = gp._eR;
 		_eMu = gp._eMu;
-		_harmonics = gp._harmonics;
-	}
-
-	GeoPotential::GeoPotential(GeoPotential&& gp) noexcept
-	{
-		_count = gp._count;
-		_eR = gp._eR;
-		_eMu = gp._eMu;
-		_harmonics = std::move(gp._harmonics);
 		gp._eR = gp._eMu = 0;
 		gp._count = 0;
-	}
-
-	GeoPotential& GeoPotential::operator = (const GeoPotential& gp)
-	{
-		_count = gp._count;
-		_eR = gp._eR;
-		_eMu = gp._eMu;
-		_harmonics = gp._harmonics;
-		return *this;
-	}
-
-	GeoPotential& GeoPotential::operator = (GeoPotential&& gp) noexcept
-	{
-		_count = gp._count;
-		_eR = gp._eR;
-		_eMu = gp._eMu;
-		_harmonics = std::move(gp._harmonics);
-		gp._eR = gp._eMu = 0;
-		gp._count = 0;
-		return *this;
 	}
 
 	double GeoPotential::operator () (const general::math::Vec3& coordinates)
