@@ -39,9 +39,9 @@ void test_conversions()
 
 	auto xyzPosition{ general::math::Vec3(-4688980.289, -11060428.914, 238914.750) };
 	std::cout << "Initial position in orthogonal: " << xyzPosition << std::endl;
-	auto rblPosition = CS_ort_to_sph(xyzPosition);
+	auto rblPosition = ort_to_sph(xyzPosition);
 	std::cout << "Converted to spherical: " << rblPosition << std::endl;
-	auto xyzCheck = CS_sph_to_ort(rblPosition);
+	auto xyzCheck = sph_to_ort(rblPosition);
 	std::cout << "Converted to orthogonal: " << xyzCheck << std::endl;
 }
 
@@ -188,7 +188,7 @@ void test_trajectoryproxy1()
 
 	std::cout << std::setprecision(15);
 
-	auto read_measurements = [](std::string& filepath) -> std::list<std::pair<PV, JD>> {
+	auto read_measurements_from_txt = [](std::string& filepath) -> std::list<std::pair<PV, JD>> {
 		auto is = std::ifstream(filepath);
 		if (!is.is_open())
 			throw std::invalid_argument("Invalid istream!");
@@ -199,8 +199,8 @@ void test_trajectoryproxy1()
 		while (!is.eof()) {
 			is >> date[0] >> date[1] >> date[2] >>
 				time[0] >> time[1] >> time[2] >>
-				coords.Pos.X >> coords.Pos.Y >> coords.Pos.Z >>
-				coords.Vel.X >> coords.Vel.Y >> coords.Vel.Z;
+				coords.pos.x >> coords.pos.Y >> coords.pos.Z >>
+				coords.Vel.x >> coords.Vel.Y >> coords.Vel.Z;
 			coords *= 1e3;
 			measurements.push_back(std::make_pair(coords, JD(DateTime(date[2], date[1], date[0], time[0], time[1], time[2]))));
 			while (!is.eof() && buf != '\n')
@@ -219,7 +219,7 @@ void test_trajectoryproxy1()
 	) };
 	std::string directory = "D:\\User\\Desktop\\disser\\progs\\Ballistic\\resources\\ExampleDataTxt\\";
 	auto filepath = directory + "meas1.txt";
-	auto list = read_measurements(filepath);
+	auto list = read_measurements_from_txt(filepath);
 	auto measurements{ std::vector<std::pair<PV, JD>>(list.size()) };
 	size_t index{ 0 };
 	for (auto& v : list)
@@ -245,7 +245,7 @@ void test_trajectoryproxy2()
 		double R{ 0 }, V{ 0 };
 	};
 
-	auto read_measurements = [](const std::string& filepath) -> std::list<std::pair<PV, JD>> {
+	auto read_measurements_from_txt = [](const std::string& filepath) -> std::list<std::pair<PV, JD>> {
 		auto reader = std::ifstream(filepath);
 		if (!reader.is_open()) 
 			throw std::runtime_error("Failed to open file: " + filepath);
@@ -257,9 +257,9 @@ void test_trajectoryproxy2()
 
 		while (!reader.eof()) {
 			reader >> date >> time >>
-				vec.Pos.X >> vec.Pos.Y >> vec.Pos.Z >>
-				vec.Vel.X >> vec.Vel.Y >> vec.Vel.Z;
-			if (!try_parse(date + " " + time, dt, "y-M-d h:m:s"))
+				vec.pos.x >> vec.pos.Y >> vec.pos.Z >>
+				vec.Vel.x >> vec.Vel.Y >> vec.Vel.Z;
+			if (!datetime_from_str(date + " " + time, dt, "y-M-d h:m:s"))
 				throw std::runtime_error("Failed to parse datetime from " + date + " " + time);
 			list.push_back(std::make_pair(vec, JD(dt).add_seconds(-18)));
 			while (buf != '\n' && !reader.eof()) reader.read(&buf, 1);
@@ -279,7 +279,7 @@ void test_trajectoryproxy2()
 		const std::string directory = "D:\\User\\Desktop\\disser\\progs\\Ballistic\\resources\\ExampleDataTxt\\";
 		const std::string filename = "25_09_2019.txt";
 		const std::string filepath = directory + filename;
-		auto list = read_measurements(filepath);
+		auto list = read_measurements_from_txt(filepath);
 		auto& measurements = list;// filter_measurements(list);
 		JD tk{ (--measurements.cend())->second };
 		auto x0{ State(measurements.cbegin()->first, 0, measurements.cbegin()->second, 1) };
@@ -301,7 +301,7 @@ void test_trajectoryproxy2()
 		for (const auto& m : measurements) {
 			ball.get_point(m.second, point);
 			diff = m.first - point.Vec;
-			diversities[index++] = Difference{ m.second.to_datetime(), diff.Pos.length(), diff.Vel.length() };
+			diversities[index++] = Difference{ m.second.to_datetime(), diff.pos.length(), diff.Vel.length() };
 		}
 		save_to_file(std::to_string(harmonics) + " harm data of " + filename, x0, diversities);
 	}

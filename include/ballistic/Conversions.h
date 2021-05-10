@@ -31,13 +31,13 @@ namespace ball
 	/// </summary>
 	/// <param name="vec"> - a vector (x,y,z)</param>
 	/// <returns>a vector (radius, latitude or inclination, longitude or ascension)</returns>
-	general::math::Vec3 CS_ort_to_sph(const general::math::Vec3& vec);
+	general::math::Vec3 ort_to_sph(const general::math::Vec3& vec);
 	/// <summary>
 	/// Conversion the vector from spherical coordinate system to orthogonal
 	/// </summary>
 	/// <param name="vec"> - a vector  (radius, latitude or inclination, longitude or ascension)</param>
 	/// <returns>a vector (x,y,z)</returns>
-	general::math::Vec3 CS_sph_to_ort(const general::math::Vec3& vec);
+	general::math::Vec3 sph_to_ort(const general::math::Vec3& vec);
 	/// <summary>
 	/// Conversion from GCS to ACS
 	/// </summary>

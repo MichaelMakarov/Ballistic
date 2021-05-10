@@ -1,8 +1,18 @@
 #include "JGM3.h"
+#include <fstream>
 
 namespace ball
 {
-	const std::vector<std::pair<double, double>> JGM3::_harmonics
+	JGM3::JGM3(const char* filepath)
+	{
+		auto fin = std::ifstream(filepath);
+		load_harmonics<70>(fin, _harmonics, _count);
+		fin.close();
+	}
+	
+	size_t JGM3::_count = 50;
+
+	std::vector<std::pair<double, double>> JGM3::_harmonics
 	{
 		//   C                       S
 		// 0

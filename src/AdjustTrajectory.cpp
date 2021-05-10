@@ -3,9 +3,9 @@
 
 namespace ball
 {
-	std::vector<general::math::VectorDyn> create_array_of_vectors(const size_t count, const size_t size)
+	std::vector<general::math::Vector> create_array_of_vectors(const size_t count, const size_t size)
 	{
-		auto result{ std::vector<general::math::VectorDyn>(count) };
+		auto result{ std::vector<general::math::Vector>(count) };
 		for (auto& vec : result) vec.resize(size);
 		return result;
 	}
@@ -32,11 +32,11 @@ namespace ball
 			}
 			else {
 				auto buffer{ std::list<std::pair<PV, JD>>() };
-				auto X{ VectorDyn(list.size()) };
+				auto x{ Vector(list.size()) };
 				auto Y = create_array_of_vectors(vars, list.size());
 				size_t index{ 0 };
 				for (auto iter = list.cbegin(); iter != list.cend(); ++iter) {
-					X[index] = iter->second - list.cbegin()->second;
+					x[index] = iter->second - list.cbegin()->second;
 					for (size_t n = 0; n < vars; ++n) Y[n][index] = iter->first[n];
 					++index;
 				}
@@ -44,7 +44,7 @@ namespace ball
 				for (size_t n = 0; n < vars; ++n) {
 					results[n] = std::async(
 						std::launch::async,
-						[sko, degree](const VectorDyn x, const VectorDyn& y) -> std::vector<bool> {
+						[sko, degree](const Vector x, const Vector& y) -> std::vector<bool> {
 							auto poly = create_polynom(x, y, degree);
 							double currsko{ 0 };
 							auto diff{ std::vector<double>(x.size()) };
@@ -57,7 +57,7 @@ namespace ball
 							for (size_t k = 0; k < x.size(); ++k)
 								result[k] = (diff[k] - sko * currsko) < 0.0;
 							return result;
-						}, X, Y[n]
+						}, x, Y[n]
 							).get();
 				}
 				bool flag;

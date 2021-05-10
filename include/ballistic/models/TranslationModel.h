@@ -4,8 +4,8 @@
 
 namespace ball
 {
-	// A forecast interface provides a function for the aceleration calculation.
-	// ForecastType is a type of the class inherits the interface is used for static polymorphism
+	// A forecast interface provides a function that returns the vector of size 6.
+	// ForecastType is a type of the class that inherits the interface (implements static polymorphism)
 	template<class Model>
 	class TranslationModel
 	{
@@ -21,7 +21,7 @@ namespace ball
 		}
 
 	public:
-		double MinHeight = 1e5, MaxHeight = 1e8;
+		double MinHeight = 1e4, MaxHeight = 1e8;
 		double sBall = 0.0;
 	};
 }

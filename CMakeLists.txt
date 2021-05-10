@@ -7,13 +7,14 @@ project(Ballistic)
 include_directories(
 	${CMAKE_CURRENT_SOURCE_DIR}/include/ballistic/atmosphere
 	${CMAKE_CURRENT_SOURCE_DIR}/include/ballistic/gravity
-	${CMAKE_CURRENT_SOURCE_DIR}/include/ballistic/solar
+	${CMAKE_CURRENT_SOURCE_DIR}/include/ballistic/solarsystem
 	${CMAKE_CURRENT_SOURCE_DIR}/include/ballistic/integrators
 	${CMAKE_CURRENT_SOURCE_DIR}/include/ballistic/models
 	${CMAKE_CURRENT_SOURCE_DIR}/include/ballistic/utils3d
 	${CMAKE_CURRENT_SOURCE_DIR}/include/ballistic/celestrack
 	${CMAKE_CURRENT_SOURCE_DIR}/include/ballistic
 	${CMAKE_CURRENT_SOURCE_DIR}/libs/General/include
+	${CMAKE_CURRENT_SOURCE_DIR}/libs/Serialization/include
 )
 
 add_library(
@@ -31,7 +32,7 @@ add_library(
 	src/JGM3.cpp 
 	src/PZ90.cpp
 	
-	src/SolarModel.cpp
+	"src/SolarSystem.cpp"
 
 	src/Parsers.cpp
 	src/Object.cpp
@@ -39,11 +40,10 @@ add_library(
 	src/AdjustTrajectory.cpp
 
 	src/DataProviders.cpp
-	src/Conversions.cpp)
+	src/Conversions.cpp "src/EGM08.cpp")
 
-add_subdirectory(
-	${CMAKE_CURRENT_SOURCE_DIR}/libs/General
-)
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/libs/General)
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/libs/Serialization)
 
 target_link_libraries(Ballistic	General)
 
@@ -52,7 +52,16 @@ add_executable(TestConversions test/TestConversions.cpp)
 target_link_libraries(TestConversions Ballistic)
 
 add_executable(TestForecast test/TestForecast.cpp)
-target_link_libraries(TestForecast Ballistic)
+target_link_libraries(TestForecast Ballistic Serialization)
 
 add_executable(TestAtmosphere test/TestAtmosphere.cpp)
 target_link_libraries(TestAtmosphere Ballistic)
+
+add_executable(TestPotential test/TestPotential.cpp)
+target_link_libraries(TestPotential Ballistic)
+
+add_executable(TestIntegrators test/TestIntegrators.cpp)
+target_link_libraries(TestIntegrators Ballistic)
+
+#add_executable(TestAdd test/add.cpp)
+#target_link_libraries(TestAdd Ballistic)

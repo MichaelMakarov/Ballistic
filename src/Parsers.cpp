@@ -53,7 +53,7 @@ namespace ball
 					fin.get(input);
 					if (input == ' ') {
 						fin >> points[vertcount];
-						points[vertcount].Z = -points[vertcount].Z;
+						points[vertcount].z() = -points[vertcount].z();
 						vertcount++;
 					}
 					else if (input == 't') {
@@ -61,7 +61,7 @@ namespace ball
 					}
 					else if (input == 'n') {
 						fin >> normals[normcount];
-						normals[normcount].Z = -normals[normcount].Z;
+						normals[normcount].z() = -normals[normcount].z();
 						normcount++;
 					}
 				}

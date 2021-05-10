@@ -2,6 +2,7 @@
 #include "Conversions.h"
 #include "EGM96.h"
 #include <fstream>
+#include <algorithm>
 
 namespace ball
 {
@@ -23,7 +24,7 @@ namespace ball
 		const general::math::Vec3& sun,
 		const double incl) const
 	{
-		const double sunlg{ std::atan2(sun.Y, sun.X) };
+		const double sunlg{ std::atan2(sun.y(), sun.x()) };
 		double tmp = (std::max(Isa[0], std::min(_f81, Isa[5])) - Isa[0]) / ISA_STEP;
 		size_t index = static_cast<size_t>(std::round(tmp));
 		index = std::min(index, size_t(5));
@@ -35,8 +36,8 @@ namespace ball
 
 		auto c = h < Cheights[index] ? Cl[index] : Ch[index];
 		const double beta{ sunlg + Phi[index] };
-		double cosphi = 1.0 / pos.length() * (pos.Z * std::sin(incl) + 
-								std::cos(incl) * (pos.X * std::cos(beta) + pos.Y * std::sin(beta)));
+		double cosphi = 1.0 / pos.length() * (pos.z() * std::sin(incl) + 
+								std::cos(incl) * (pos.x() * std::cos(beta) + pos.y() * std::sin(beta)));
 		cosphi = std::sqrt(0.5 * (1.0 + cosphi));
 		double k1 = c[0] + (c[1] + (c[2] + (c[3] + c[4] * h) * h) * h) * h;
 		k1 *= std::pow(cosphi, N[0] + h * (N[1] + h * N[2]));

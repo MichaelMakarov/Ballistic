@@ -3,29 +3,29 @@
 
 namespace ball
 {
-	template<Arithmetic R>
-	class RKIntegrator : public SinglestepIntegrator<RKIntegrator<R>, R>
+	template<Arithmetic R, Time T>
+	class RKIntegrator : public SinglestepIntegrator<RKIntegrator<R, T>, R, T>
 	{
 	public:
-		RKIntegrator() : SinglestepIntegrator<RKIntegrator<R>, R>() {}
+		RKIntegrator() : SinglestepIntegrator<RKIntegrator<R, T>, R, T>() {}
 		~RKIntegrator() = default;
 
+		template<class Inv>
 		void integrate(
 			const R& x0,
-			const general::time::JD& t0,
+			const T& t0,
 			const double step,
 			R& xk,
-			general::time::JD& tk) const
+			T& tk,
+			const Func<Inv, R, T>& func) const
 		{
-			const double 	step_2 = 0.5 * step,
-							step_6 = step / 6;
-			auto			t = tk = t0;
-			t.add_seconds(static_cast<int>(step_2));
-			tk.add_seconds(static_cast<int>(step));
-			auto k1{ this->func(x0, t0) };
-			auto k2{ this->func(x0 + step_2 * k1, t) };
-			auto k3{ this->func(x0 + step_2 * k2, t) };
-			auto k4{ this->func(x0 + step * k3, tk) };
+			const double step_2 = 0.5 * step, step_6 = step / 6;
+			auto t = t0 + step_2;
+			tk = t0 + step;
+			auto k1{ func(x0, t0) };
+			auto k2{ func(x0 + step_2 * k1, t) };
+			auto k3{ func(x0 + step_2 * k2, t) };
+			auto k4{ func(x0 + step * k3, tk) };
 			xk = x0 + step_6 * (k1 + 2 * (k2 + k3) + k4);
 		}
 	};

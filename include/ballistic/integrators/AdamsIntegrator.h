@@ -3,8 +3,8 @@
 
 namespace ball
 {
-	template<Arithmetic R>
-	class AdamsIntegrator : public MultistepIntegrator<AdamsIntegrator<R>, R>
+	template<Arithmetic R, Time T>
+	class AdamsIntegrator : public MultistepIntegrator<AdamsIntegrator<R, T>, R, T>
 	{
 	private:
 		const double _b[8]
@@ -31,34 +31,35 @@ namespace ball
 		};
 
 	public:
-		AdamsIntegrator() : MultistepIntegrator<AdamsIntegrator<R>, R>(8) {}
+		AdamsIntegrator() : MultistepIntegrator<AdamsIntegrator<R, T>, R, T>(8) {}
 		~AdamsIntegrator() = default;
 
+		template<class Inv>
 		void integrate(
-			std::pair<R, general::time::JD>* pData,
+			const R* pR, const T* pT,
 			const double step,
 			R& xk,
-			general::time::JD& tk) const
+			T& tk,
+			const Func<Inv, R, T>& func) const
 		{
-			xk.Pos.X = xk.Pos.Y = xk.Pos.Z = xk.Vel.X = xk.Vel.Y = xk.Vel.Z = 0;
-			auto xt{ _b[0] * this->func(pData->first, pData->second) };
-			general::math::PV xb;
-			for (size_t i = 1; i < 8; ++i)
-			{
-				pData++;
-				xb = this->func(pData->first, pData->second);
+			xk = R();
+			auto xt{ _b[0] * func(*pR, *pT) };
+			R xb;
+			for (size_t i = 1; i < 8; ++i) {
+				pR++;
+				pT++;
+				xb = func(*pR, *pT);
 				// prediction
 				xt += _b[i] * xb;
 				// correction
 				xk += _c[i - 1] * xb;
 			}
 			xt *= step;
-			xt += pData->first; 
-			tk = pData->second;
-			tk.add_seconds(static_cast<int>(step));
-			xk += _c[7] * this->func(xt, tk);
+			xt += (*pR); 
+			tk = (*pT) + step;
+			xk += _c[7] * func(xt, tk);
 			xk *= step;
-			xk += pData->first;
+			xk += (*pR);
 		}
 	};
 }

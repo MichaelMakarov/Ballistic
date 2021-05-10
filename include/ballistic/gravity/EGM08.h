@@ -1,12 +1,12 @@
-﻿#pragma once
+#pragma once
 #include "EarthModel.h"
 
 namespace ball
 {
-	class EGM96 : public IEarth
+	class EGM08 : public IEarth
 	{
 	public:
-		inline size_t count() const { return _count; }
+		inline size_t count() const override { return 50; }
 		const std::vector<std::pair<double, double>>& harmonics() const { return _harmonics; }
 
 		constexpr static inline double Mu() { return 0.3986004415E+15; }
@@ -15,9 +15,9 @@ namespace ball
 		constexpr static inline double W() { return 72.92115e-6; }
 		constexpr static inline double Fl() { return 1.0 / 298.257223563; }
 
-		EGM96() = default;
-		EGM96(const char* filepath);
-		~EGM96() = default;
+		EGM08() = default;
+		EGM08(const char* filepath);
+		~EGM08() = default;
 
 	private:
 		static std::vector<std::pair<double, double>> _harmonics;

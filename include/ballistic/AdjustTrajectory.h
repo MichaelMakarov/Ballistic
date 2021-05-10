@@ -1,7 +1,6 @@
 #pragma once
 #include "Ballistic.h"
 #include "general/Matrix.h"
-#include <vector>
 #include <list>
 #include <utility>
 #include <string>
@@ -16,7 +15,7 @@ namespace ball
 		ALL_COORDINATES = 6
 	};
 
-	std::vector<general::math::VectorDyn> create_array_of_vectors(const size_t count, const size_t size);
+	std::vector<general::math::Vector> create_array_of_vectors(const size_t count, const size_t size);
 
 	std::list<std::pair<general::math::PV, general::time::JD>> filter_measurements(
 		std::list<std::pair<general::math::PV, general::time::JD>>& measurements,
@@ -37,101 +36,129 @@ namespace ball
 		return filter_measurements(std::list<std::pair<general::math::PV, general::time::JD>>(first, last), dt, polydegree);
 	}
 
-	template<class T> concept StdContainer = requires (T ex) { 
+	/// <summary>
+	/// A concept of the container from standard library
+	/// </summary>
+	template<class T, class M> concept StdContainer = requires (T ex) { 
 		{ ex.size() }; 
 		{ T::iterator }; 
 		{ ex.cbegin() }; 
 		{ ex.cend() }; 
 	};
-
-	template<TransModel Model, StdContainer Container, class ... Args>
+	/// <summary>
+	/// Calculating the residuals
+	/// </summary>
+	/// <param name="trajectory"> - a calculated trajectory</param>
+	/// <param name="measurements"> - an amount of measuring data</param>
+	/// <param name="vars"> - a number of coordinates to consider</param>
+	/// <param name="vec"> - a vector of residuals</param>
+	template<StdContainer<std::pair<general::math::PV, general::time::JD>> Container>
+	void _calc_residuals(
+		const std::vector<State>& trajectory,
+		const Container& measurements,
+		const size_t vars,
+		general::math::Vector& vec)
+	{
+		size_t index{ 0 }, count{ 0 };
+		for (auto iter = measurements.cbegin(); iter != measurements.cend(); ++iter, ++count)
+			for (size_t n = 0; n < vars; ++n)
+				vec[index++] = iter->first[n] - trajectory[count].Vec[n];
+	}
+	/// <summary>
+	/// Calculating the matrix of partial derivatives
+	/// </summary>
+	/// <param name="x0"> - an initial point</param>
+	/// <param name="measurements"> - an amount of measuring data</param>
+	/// <param name="calc_trajectory"> - a function for calculating the trajectory of motion</param>
+	/// <param name="vars"> - a number of coordinates to consider</param>
+	/// <param name="matrix"> - a matrix of partial derivatives</param>
+	/// <returns>a calculated trajectory</returns>
+	template<StdContainer<std::pair<general::math::PV, general::time::JD>> Container>
+	std::vector<State> _calc_partial_derivatives(
+		const State& x0,
+		const Container& measurements,
+		const std::function<std::vector<State>(const State&, const Container&)>& calc_trajectory,
+		const size_t vars,
+		general::math::Matrix& matrix)
+	{
+		const double deltas[7]{ 25, 25, 25, 0.025, 0.025, 0.025, 0.2 * 0.0007855809 };
+		State xlist[7]{ x0, x0, x0, x0, x0, x0, x0 };
+		auto traj = calc_trajectory(x0, measurements);
+		std::future<std::vector<State>> futures[6];
+		for (size_t i = 0; i < 6; ++i) {
+			xlist[i].Vec[i] += deltas[i];
+			futures[i] = std::async(std::launch::async, calc_trajectory, xlist[i], measurements);
+		}
+		xlist[6].Sb += deltas[6];
+		auto varied = calc_trajectory(xlist[6], measurements);
+		size_t index{ 0 };
+		for (size_t n = 0; n < traj.size(); ++n)
+			for (size_t k = 0; k < vars; ++k)
+				matrix(index++, 6) = (varied[n].Vec[k] - traj[n].Vec[k]) / deltas[6];
+		for (size_t i = 0; i < 6; ++i) {
+			index = 0;
+			varied = futures[i].get();
+			for (size_t n = 0; n < traj.size(); ++n)
+				for (size_t k = 0; k < vars; ++k)
+					matrix(index++, i) = (varied[n].Vec[k] - traj[n].Vec[k]) / deltas[i];
+		}
+		return traj;
+	}
+	/// <summary>
+	/// Recalculating an initial point to adjust the trajectory of motion to measurements
+	/// </summary>
+	/// <param name="x0"> - initial point</param>
+	/// <param name="measurements"> - an amount of measurements</param>
+	/// <param name="calc_trajectory"> - a function for trajectory calculating</param>
+	/// <param name="type"> - a solution type</param>
+	/// <param name="iterations"> - a max number of iterations for optimization</param>
+	/// <param name="pLogstrbuf"> - a pointer to the logging stream</param>
+	/// <returns>a number of iterations required for solution</returns>
+	template<StdContainer<std::pair<general::math::PV, general::time::JD>> Container>
 	size_t refine_initpoint(
 		State& x0,
 		const Container& measurements,
-		std::function<std::unique_ptr<Model>()> create_model,
+		const std::function<std::vector<State>(const State&, const Container&)>& calc_trajectory,
 		const SolveType type = SolveType::POSITION_ONLY,
-		const size_t iterations = 10
+		const size_t iterations = 10,
+		std::streambuf* pLogstrbuf = nullptr
 	)
 	{
 		using namespace general::math;
 		using namespace general::time;
 
+		auto logout = std::ostream(pLogstrbuf);
 		const size_t vars = static_cast<size_t>(type);
 		size_t iteration{ 0 };
-		const double deltas[7]{ 25, 25, 25, 0.025, 0.025, 0.025, 0.2 * 0.0007855809 };
-		general::time::JD tk;
+		logout << "Initial: " << x0 << std::endl;
+		logout << "Measurements:\n";
 		for (auto iter = measurements.cbegin(); iter != measurements.cend(); ++iter) {
-			if (iter->second > tk) tk = iter->second;
+			logout << iter->first << " " << iter->second << std::endl;
 		}
-		auto B{ MatrixDyn(vars * measurements.size(), 7) };
-		auto L{ VectorDyn(vars * measurements.size()) };
-
-		auto calc_trajectory = [create_model, measurements](const State& x0, const JD& tk) -> std::vector<State> {
-			auto ball = make_forecast<Model>(create_model());
-			ball.run<AdamsIntegrator<PV>, RKIntegrator<PV>>(
-				x0, tk,
-				RKIntegrator<PV>(),
-				AdamsIntegrator<PV>());
-			auto traj{ std::vector<State>(measurements.size()) };
-			size_t index{ 0 };
-			for (auto& m : measurements)
-				traj[index++] = ball.get_point(m.second);
-			return traj;
-		};
-		auto calc_diversities = [measurements, vars](const std::vector<State>& trajectory, VectorDyn& vec) {
-			size_t index{ 0 }, count{ 0 };
-			for (auto iter = measurements.cbegin(); iter != measurements.cend(); ++iter, ++count)
-				for (size_t n = 0; n < vars; ++n)
-					vec[index++] = iter->first[n] - trajectory[count].Vec[n];
-		};
-		auto calc_partial_derivatives = [deltas, calc_trajectory, vars](const State& x0, const JD& tk, MatrixDyn& matrix)
-			-> std::vector<State> {
-			State xlist[7]{ x0, x0, x0, x0, x0, x0, x0 };
-			auto traj = calc_trajectory(x0, tk);
-			std::future<std::vector<State>> futures[6];
-			for (size_t i = 0; i < 6; ++i) {
-				xlist[i].Vec[i] += deltas[i];
-				futures[i] = std::async(std::launch::async, calc_trajectory, xlist[i], tk);
-			}
-			xlist[6].Sb += deltas[6];
-			auto vared = calc_trajectory(xlist[6], tk);
-			size_t index{ 0 };
-			for (size_t n = 0; n < traj.size(); ++n)
-				for (size_t k = 0; k < vars; ++k)
-					matrix(index++, 6) = (vared[n].Vec[k] - traj[n].Vec[k]) / deltas[6];
-			for (size_t i = 0; i < 6; ++i) {
-				index = 0;
-				vared = futures[i].get();
-				for (size_t n = 0; n < traj.size(); ++n)
-					for (size_t k = 0; k < vars; ++k)
-						matrix(index++, i) = (vared[n].Vec[k] - traj[n].Vec[k]) / deltas[i];
-			}
-			return traj;
-		};
+		auto B{ Matrix(vars * measurements.size(), 7) };
+		auto L{ Vector(vars * measurements.size()) };
 
 		while (iteration++ < iterations) {
-			try {
-				auto trajectory = calc_partial_derivatives(x0, tk, B);
-				calc_diversities(trajectory, L);
-				auto BT = transpose(B);
-				auto M = BT * B;
-				auto D{ MatrixDyn(M.rows(), M.columns()) };
-				for (size_t i = 0; i < 7; ++i) D(i, i) = 1 / std::sqrt(M(i, i));
-				M = AxD(DxA(D, M), D);
-				auto dx0 = AxD(DxA(D, inverse(M)), D) * BT * L;
-				x0.Vec.Pos.X += dx0[0];
-				x0.Vec.Pos.Y += dx0[1];
-				x0.Vec.Pos.Z += dx0[2];
-				x0.Vec.Vel.X += dx0[3];
-				x0.Vec.Vel.Y += dx0[4];
-				x0.Vec.Vel.Z += dx0[5];
-				x0.Sb += dx0[6];
-				auto V = B * dx0 - L;
-				double mV = (V * V) / V.length();
-				double mL = (L * L) / L.length();
-				if (std::abs((mV - mL) / mV) < 1e-2) break;
-			}
-			catch (const std::exception) { return 0; }
+			auto trajectory = _calc_partial_derivatives(x0, measurements, calc_trajectory, vars, B);
+			_calc_residuals(trajectory, measurements, vars, L);
+			auto BT = transpose(B);
+			auto M = BT * B;
+			auto D{ Matrix(M.rows(), M.columns()) };
+			for (size_t i = 0; i < 7; ++i) D(i, i) = 1 / std::sqrt(M(i, i));
+			M = AxD(DxA(D, M), D);
+			auto dx0 = AxD(DxA(D, inverse(M)), D) * BT * L;
+			x0.Vec.pos.x() += dx0[0];
+			x0.Vec.pos.y() += dx0[1];
+			x0.Vec.pos.z() += dx0[2];
+			x0.Vec.vel.x() += dx0[3];
+			x0.Vec.vel.y() += dx0[4];
+			x0.Vec.vel.z() += dx0[5];
+			x0.Sb += dx0[6];
+			logout << "Iteration " << iteration << "\nResiduals: " << L << std::endl;
+			auto V = B * dx0 - L;
+			double mV = V.length();
+			double mL = L.length();
+			if (std::abs(mV - mL) / mL < 1e-3) break;
 		}
 		return iteration;
 	}

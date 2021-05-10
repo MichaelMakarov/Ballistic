@@ -1,8 +1,18 @@
 #include "EGM96.h"
+#include <fstream>
 
 namespace ball
 {
-	const std::vector<std::pair<double, double>> EGM96::_harmonics
+	EGM96::EGM96(const char* filepath)
+	{
+		auto fin = std::ifstream(filepath);
+		load_harmonics<360>(fin, _harmonics, _count);
+		fin.close();
+	}
+
+	size_t EGM96::_count = 50;
+
+	std::vector<std::pair<double, double>> EGM96::_harmonics
 	{
 		//   C                       S
 		// 0

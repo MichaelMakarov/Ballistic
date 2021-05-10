@@ -1,16 +1,16 @@
 #include "GeoPotential.h"
 #include "Conversions.h"
+#include <algorithm>
 
 namespace ball
 {
 	void GeoPotential::calc_trigonometric(const double coslambda, const double sinlambda)
 	{
-		_cs[0] = std::make_pair(1, 0);
-		for (size_t i = 1; i <= _count; ++i)
-			_cs[i] = std::make_pair(
-				_cs[i - 1].first * coslambda - _cs[i - 1].second * sinlambda,
-				_cs[i - 1].second * coslambda + _cs[i - 1].first * sinlambda
-		);
+		_cs[0].first = 1.0; _cs[0].second = 0.0;
+		for (size_t i = 1; i <= _count; ++i) {
+			_cs[i].first = _cs[i - 1].first * coslambda - _cs[i - 1].second * sinlambda;
+			_cs[i].second = _cs[i - 1].second * coslambda + _cs[i - 1].first * sinlambda;
+		}
 	}
 
 	void GeoPotential::calc_polynoms(const double cosphi, const double sinphi)
@@ -36,12 +36,10 @@ namespace ball
 		_count = std::min(count, model.count());
 		_eR = eR;
 		_eMu = eMu;
-		size_t dim = 0;
-		for (size_t i = 0; i <= _count; ++i) dim += i + 1;
-		/*_harmonics.resize(dim);
-		std::memcpy(_harmonics.data(), emodel.harmonics().data(), sizeof(std::pair<double, double>) * dim);*/
+		size_t dim = ((_count + 1) * (_count + 2)) / 2;
 		_cs.resize(_count + 1);
-		_pnm.resize(dim);
+		_pnm.resize(dim + 1);
+		_pnm[dim] = 0.0;
 	}
 
 
@@ -54,96 +52,89 @@ namespace ball
 		gp._count = 0;
 	}
 
-	double GeoPotential::operator () (const general::math::Vec3& coordinates)
+	double GeoPotential::operator () (const general::math::Vec3& point)
 	{
 		double result{ 0 };
-		const double sinphi{ std::sin(coordinates.Y) };
-		const double cosphi{ std::cos(coordinates.Y) };
-		const double R_r{ _eR / coordinates.X };
-		const double coslambda{ std::cos(coordinates.Z) };
-		const double sinlambda{ std::sin(coordinates.Z) };
+		const double r{ point.length() };
+		const double xy{ std::sqrt(point.x() * point.x() + point.y() * point.y()) };
+		const double sinphi{ point.z() / r };
+		const double cosphi{ xy / r };
+		const double coslambda{ point.x() / xy };
+		const double sinlambda{ point.y() / xy };
+		const double R_r{ _eR / r };
 		double mult{ 1 };
-		double b;
 		size_t k{ 0 };
 		calc_trigonometric(coslambda, sinlambda);
 		calc_polynoms(cosphi, sinphi);
 		for (size_t n = 0; n <= _count; ++n) {
 			for (size_t m = 0; m <= n; ++m) {
-				b = _harmonics[k].first * _cs[m].first + _harmonics[k].second * _cs[m].second;
-				result += mult * b * _pnm[k];
+				result += mult * _pnm[k] * (_harmonics[k].first * _cs[m].first + _harmonics[k].second * _cs[m].second);
 				k++;
 			}
 			mult *= R_r;
 		}
-		return _eMu / coordinates.X * result;
+		return _eMu / r * result;
 	}
 
-	general::math::Vec3 GeoPotential::acceleration(const general::math::Vec3& xyzCoord)
-	{
-		// usefull constants related to current position
+	constexpr double delta(const size_t m) { return 1.0 - 0.5 * (m == 0); }
 
-		const double r{ xyzCoord.length() };
-		const double xy{ std::sqrt(xyzCoord.X * xyzCoord.X + xyzCoord.Y * xyzCoord.Y) };
-		const double sinphi{ xyzCoord.Z / r };
+	general::math::Vec3 GeoPotential::acceleration(const general::math::Vec3& point)
+	{
+		using namespace general::math;
+		
+		const double r{ point.length() };
+		const double xy{ std::sqrt(point.x() * point.x() + point.y() * point.y()) };
+		const double sinphi{ point.z() / r };
 		const double cosphi{ xy / r };
 		const double tgphi{ sinphi / cosphi };
-		const double coslambda{ xyzCoord.X / xy };
-		const double sinlambda{ xyzCoord.Y / xy };
-		const double mu_r_2{ _eMu / r / r };
+		const double coslambda{ point.x() / xy };
+		const double sinlambda{ point.y() / xy };
+		const double mu_r2{ _eMu / r / r };
 		const double R_r{ _eR / r };
 		double mult{ R_r * R_r };
-		const double zxyr{ xyzCoord.Z / xy / r };
+		const double zxyr{ point.z() / xy / r };
 
-		// the derivatives
-
-		const auto xyzdR{ xyzCoord / r };
-		const auto xyzdPhi{ general::math::Vec3(-xyzCoord.X * zxyr,	-xyzCoord.Y * zxyr,	xy / r) };
-		const auto xyzdLambda{ general::math::Vec3(-xyzCoord.Y / xy, xyzCoord.X / xy, 0) };
-
-		// the temporary values
+		const Vec3 dR{ point / r };
+		const auto dPhi{ Vec3(-point.x() * zxyr, -point.y() * zxyr, xy / r) };
+		const auto dLambda{ Vec3(-point.y() / xy, point.x() / xy, 0) };
 
 		size_t k{ 3 };
 		double poly, dpoly;
 		double kcs, ksc;
-		general::math::Vec3 rbldU_n, rbldU_sum;
-
-		auto delta = [](const size_t m) { return m == 0 ? 0.5 : 1.0; };
+		Vec3 dUn, dUsum;
+		
 		calc_trigonometric(coslambda, sinlambda);
 		calc_polynoms(cosphi, sinphi);
 
 		// calculating the accelerations
 		for (size_t n = 2; n <= _count; ++n) {
-			rbldU_n.Y = rbldU_n.Z = rbldU_n.X = 0.0;
+			dUn.x() = dUn.y() = dUn.z() = 0.0;
 			for (size_t m = 0; m <= n; ++m) {
 				// current Legendre function
 				poly = _pnm[k];
 				// a derivative of the current Legendre function
-				dpoly = -poly * m * tgphi + (m == n ? 0 : _pnm[k + 1] * std::sqrt((n - m) * (n + m + 1) * delta(m)));
+				dpoly = -poly * m * tgphi + _pnm[k + 1] * std::sqrt((n - m) * (n + m + 1) * delta(m));
 				// Cnm * cos(m * L) + Snm * sin(m * L)
 				kcs = _harmonics[k].first * _cs[m].first + _harmonics[k].second * _cs[m].second;
 				// Snm * cos(m * L) - Cnm * sin(m * L)
 				ksc = _harmonics[k].second * _cs[m].first - _harmonics[k].first * _cs[m].second;
-				rbldU_n.X -= poly * kcs;
-				rbldU_n.Y += dpoly * kcs;
-				rbldU_n.Z += poly * ksc * m;
-				k++;
+				dUn.x() -= poly * kcs;		// a derivative by r
+				dUn.y() += dpoly * kcs;		// a derivative by phi
+				dUn.z() += poly * ksc * m;	// a derivative by lambda
+				++k;
 			}
-			rbldU_sum.X += (n + 1) * mult * rbldU_n.X;
-			rbldU_sum.Y += mult * rbldU_n.Y;
-			rbldU_sum.Z += mult * rbldU_n.Z;
+			dUsum.x() += (n + 1) * mult * dUn.x();
+			dUsum.y() += mult * dUn.y();
+			dUsum.z() += mult * dUn.z();
 			mult *= R_r;
 		}
-		rbldU_sum.Z /= cosphi;
-		rbldU_sum.X *= mu_r_2;
-		rbldU_sum.Y *= mu_r_2;
-		rbldU_sum.Z *= mu_r_2;
+		dUsum.z() /= cosphi;
+		dUsum *= mu_r2;
 
-		auto centr_pot{ general::math::Vec3(-mu_r_2 * xyzdR.X, -mu_r_2 * xyzdR.Y, -mu_r_2 * xyzdR.Z) };
-		auto harm_pot = general::math::Vec3(
-			rbldU_sum.X * xyzdR.X + rbldU_sum.Y * xyzdPhi.X + rbldU_sum.Z * xyzdLambda.X,
-			rbldU_sum.X * xyzdR.Y + rbldU_sum.Y * xyzdPhi.Y + rbldU_sum.Z * xyzdLambda.Y,
-			rbldU_sum.X * xyzdR.Z + rbldU_sum.Y * xyzdPhi.Z
+		return Vec3(
+			-mu_r2 * dR.x() + dUsum.x() * dR.x() + dUsum.y() * dPhi.x() + dUsum.z() * dLambda.x(),
+			-mu_r2 * dR.y() + dUsum.x() * dR.y() + dUsum.y() * dPhi.y() + dUsum.z() * dLambda.y(),
+			-mu_r2 * dR.z() + dUsum.x() * dR.z() + dUsum.y() * dPhi.z()
 		);
-		return centr_pot + harm_pot;
 	}
 }

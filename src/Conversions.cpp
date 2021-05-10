@@ -8,7 +8,7 @@ namespace ball
 		const double rad, const double fl)
 	{
 		const double dist = pos.length();
-		return dist - rad * (1.0 - fl * pos.Z * pos.Z / dist / dist);
+		return dist - rad * (1.0 - fl * pos.z() * pos.z() / dist / dist);
 	}
 	double trueanomaly_from_eccentric(const double E, const double e)
 	{
@@ -35,53 +35,53 @@ namespace ball
 		return std::pow(mu * T * T / (4 * general::math::PI * general::math::PI), 1.0 / 3);
 	}
 
-	general::math::Vec3 CS_ort_to_sph(const general::math::Vec3& vec)
+	general::math::Vec3 ort_to_sph(const general::math::Vec3& vec)
 	{
 		return general::math::Vec3(
 			vec.length(),
-			std::atan2(vec.Z, std::sqrt(vec.X * vec.X + vec.Y * vec.Y)),
-			std::atan2(vec.Y, vec.X));
+			std::atan2(vec.z(), std::sqrt(vec.x() * vec.x() + vec.y() * vec.y())),
+			std::atan2(vec.y(), vec.x()));
 	}
-	general::math::Vec3 CS_sph_to_ort(const general::math::Vec3& vec)
+	general::math::Vec3 sph_to_ort(const general::math::Vec3& vec)
 	{
-		const double cosB = std::cos(vec.Y);
+		const double cosB = std::cos(vec.y());
 		return general::math::Vec3(
-			vec.X * std::cos(vec.Z) * cosB,
-			vec.X * std::sin(vec.Z) * cosB,
-			vec.X * std::sin(vec.Y));
+			vec.x() * std::cos(vec.z()) * cosB,
+			vec.x() * std::sin(vec.z()) * cosB,
+			vec.x() * std::sin(vec.y()));
 	}
 	general::math::Vec3 ACS_to_GCS(const general::math::Vec3& vec, const double t)
 	{
 		const double sint{ std::sin(t) }, cost{ std::cos(t) };
 		return general::math::Vec3(
-			vec.X * cost + vec.Y * sint,
-			vec.Y * cost - vec.X * sint,
-			vec.Z);
+			vec.x() * cost + vec.y() * sint,
+			vec.y() * cost - vec.x() * sint,
+			vec.z());
 	}
 	general::math::Vec3 GCS_to_ACS(const general::math::Vec3& vec, const double t)
 	{
 		const double sint{ std::sin(t) }, cost{ std::cos(t) };
 		return general::math::Vec3(
-			vec.X * cost - vec.Y * sint,
-			vec.Y * cost + vec.X * sint,
-			vec.Z);
+			vec.x() * cost - vec.y() * sint,
+			vec.y() * cost + vec.x() * sint,
+			vec.z());
 	}
 	general::math::Vec3 ECS_to_ACS(const general::math::Vec3& vec, const double e)
 	{
 		const double sine{ std::sin(e) }, cose{ std::cos(e) };
 		return general::math::Vec3(
-			vec.X,
-			vec.Y * cose - vec.Z * sine,
-			vec.Y * sine + vec.Z * cose
+			vec.x(),
+			vec.y() * cose - vec.z() * sine,
+			vec.y() * sine + vec.z() * cose
 		);
 	}
 	general::math::Vec3 ACS_to_ECS(const general::math::Vec3& vec, const double e)
 	{
 		const double sine{ std::sin(e) }, cose{ std::cos(e) };
 		return general::math::Vec3(
-			vec.X,
-			vec.Z * sine + vec.Y * cose,
-			vec.Z * cose - vec.Y * sine
+			vec.x(),
+			vec.z() * sine + vec.y() * cose,
+			vec.z() * cose - vec.y() * sine
 		);
 	}
 	double jd_to_jc2000(const general::time::JD& jd)

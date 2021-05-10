@@ -1,3 +1,6 @@
 [submodule "libs/General"]
 	path = libs/General
 	url = https://github.com/MichaelMakarov/General.git
+[submodule "libs/Serialization"]
+	path = libs/Serialization
+	url = https://github.com/MichaelMakarov/Serialization
