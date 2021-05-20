@@ -1,5 +1,5 @@
 #pragma once
-#include "general/Geometry.h"
+#include "Structures.h"
 #include "general/Times.h"
 
 namespace ball
@@ -13,9 +13,7 @@ namespace ball
 		TranslationModel() = default;
 		~TranslationModel() = default;
 		// Acelerations calculation using current vector in GCS and time
-		general::math::PV function(
-			const general::math::PV& vec,
-			const general::time::JD& t)
+		Vec6 function(const Vec6& vec, const general::time::JD& t)
 		{
 			return static_cast<Model*>(this)->function(vec, t);
 		}

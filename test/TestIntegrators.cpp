@@ -9,6 +9,7 @@
 #include "EGM96.h"
 #include "general/Mathematics.h"
 #include "general/Times.h"
+#include "Structures.h"
 
 using namespace ball;
 using namespace general::math;
@@ -34,12 +35,12 @@ void pendulum_integration()
 	for (size_t i = 1; i < n; ++i) time[i] = time[i - 1] + dt;
 	double t;
 
-	auto func = [w](const Vec2& x, const double& t) -> Vec2 { return Vec2(x.y(), x.x() * (-w * w)); };
+	auto func = [w](const Vec2& x, const double& t) -> Vec2 { return Vec2({ x[1], x[0] * (-w * w) }); };
 	auto invoker{ make_classfunc<Vec2, double, decltype(func)>(&func) };
 
 	std::cout << "RK\n";
 	auto rkangles{ std::vector<Vec2>(n) };
-	rkangles[0] = Vec2(a, 0);
+	rkangles[0] = Vec2({ a, 0 });
 	auto rkint{ RKIntegrator<Vec2, double>() };
 	//rkint.func = func;
 	for (size_t i = 1; i < n; ++i) rkint.integrate(rkangles[i - 1], time[i - 1], dt, rkangles[i], t, invoker);
@@ -47,7 +48,7 @@ void pendulum_integration()
 
 	std::cout << "Everhart\n";
 	auto evangles{ std::vector<Vec2>(n) };
-	evangles[0] = Vec2(a, 0);
+	evangles[0] = Vec2({ a, 0 });
 	auto evint{ EverhartIntegrator<Vec2, double, 4>() };
 	//evint.func = func;
 	for (size_t i = 1; i < n; ++i) evint.integrate(evangles[i - 1], time[i - 1], dt, evangles[i], t, invoker);
@@ -55,10 +56,10 @@ void pendulum_integration()
 
 	std::cout << "Analitical\n";
 	auto anangles{ std::vector<Vec2>(n) };
-	anangles[0] = Vec2(a, 0);
+	anangles[0] = Vec2({ a, 0 });
 	for (size_t i = 0; i < n; ++i) {
-		anangles[i].x() = a * std::cos(w * time[i]);
-		anangles[i].y() = -a * w * std::sin(w * time[i]);
+		anangles[i][0] = a * std::cos(w * time[i]);
+		anangles[i][1] = -a * w * std::sin(w * time[i]);
 	}
 	save("analitical.txt", anangles, time);
 }
@@ -97,17 +98,18 @@ void orbit_integration()
 {
 	constexpr const double r0{ 7e6 }, mu = EGM96::Mu();
 	const double v0 = std::sqrt(mu / r0);
-	Vec3 vel = Vec3(1 / std::sqrt(2), 0, 1 / std::sqrt(2)) * v0;
-	Vec3 pos = Vec3(0, r0, 0);
-	PV x0 = PV(pos, vel);
-	auto func = [mu, r0](const PV& vec, const double& t) {
-		return PV(vec.vel, normalize(vec.pos) * (-mu / r0 / r0));
+	auto vel = Vec3({ 1 / std::sqrt(2), 0, 1 / std::sqrt(2) }) * v0;
+	auto pos = Vec3({ 0, r0, 0 });
+	Vec6 x0{ {pos[0], pos[1], pos[2], vel[0], vel[1], vel[2]} };
+	auto func = [mu, r0](const Vec6& vec, const double& t) {
+		const double mult = -mu / r0 / r0 / std::sqrt(vec[0] * vec[0] + vec[1] * vec[1] + vec[2] * vec[2]);
+		return Vec6{ { vec[3], vec[4], vec[5], vec[0] * mult, vec[1] * mult, vec[2] * mult } };
 	};
-	auto invoker{ make_classfunc<PV, double>(&func) };
+	auto invoker{ make_classfunc<Vec6, double>(&func) };
 	const double tk{ 86400 }, t0{ 0 };
 	const double dt{ 30 };
 	size_t n = 1 + static_cast<size_t>((tk - t0) / dt);
-	auto calc_traj = [mu, r0, vel, pos](const PV& x0, const double t0, const double dt, const size_t n) {
+	auto calc_traj = [mu, r0, vel, pos](const Vec6& x0, const double t0, const double dt, const size_t n) {
 		auto data = std::vector<std::pair<Vec3, double>>(n);
 		const double w{ vel.length() / r0 };
 		double angle{ 0 };
@@ -126,15 +128,15 @@ void orbit_integration()
 	sw.finish();
 	std::cout << sw.duration() << std::endl;
 	sw.start();
-	auto traj1 = integrate<PV, double, RKIntegrator<PV, double>, ClassFunc<PV, double, decltype(func)>>(x0, 0, dt, n, RKIntegrator<PV, double>(), invoker);
+	auto traj1 = integrate<Vec6, double, RKIntegrator<Vec6, double>, ClassFunc<Vec6, double, decltype(func)>>(x0, 0, dt, n, RKIntegrator<Vec6, double>(), invoker);
 	sw.finish();
 	std::cout << sw.duration() << std::endl;
 	sw.start();
-	auto traj2 = integrate<PV, double, EverhartIntegrator<PV, double, 7>, ClassFunc<PV, double, decltype(func)>>(x0, 0, dt, n, EverhartIntegrator<PV, double, 7>(), invoker);
+	auto traj2 = integrate<Vec6, double, EverhartIntegrator<Vec6, double, 7>, ClassFunc<Vec6, double, decltype(func)>>(x0, 0, dt, n, EverhartIntegrator<Vec6, double, 7>(), invoker);
 	sw.finish();
 	std::cout << sw.duration() << std::endl;
-	AdamsIntegrator<PV, double> adams;
-	auto traj3 = std::vector<PV>(traj1.size());
+	AdamsIntegrator<Vec6, double> adams;
+	auto traj3 = std::vector<Vec6>(traj1.size());
 	auto tlist = std::vector<double>(traj3.size());
 	for (size_t i = 0; i < adams.degree(); ++i) {
 		traj3[i] = traj1[i].first;
@@ -145,14 +147,13 @@ void orbit_integration()
 	sw.finish();
 	std::cout << sw.duration() << std::endl;
 	
-
 	auto fout = std::ofstream("orbit integration.txt");
 	fout << std::setprecision(16);
 	for (size_t i = 0; i < n; ++i) {
 		fout << traj0[i].second << " " << traj0[i].first << " " << 
-			traj1[i].first.pos << " " << 
-			traj2[i].first.pos << " " <<
-			traj3[i].pos << std::endl;
+			slice<0, 2>(traj1[i].first) << " " << 
+			slice<0, 2>(traj2[i].first) << " " <<
+			slice<0, 2>(traj3[i]) << std::endl;
 	}
 	fout.close();
 }

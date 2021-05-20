@@ -1,21 +1,33 @@
 #pragma once
-#include "general/Geometry.h"
+#include "general/Vector.h"
 #include "general/Times.h"
 #include <utility>
 
 namespace ball
 {
 	/// <summary>
-	/// an acceleration caused in the point by single massive point
+	/// an acceleration caused by single massive point
 	/// </summary>
 	/// <param name="point"> - a point to calculate an acceleration at</param>
-	/// <param name="pos"> - a position of single massive point</param>
+	/// <param name="masspoint"> - a position of single massive point</param>
 	/// <param name="mu"> - a gravitational parameter (multiplication of mass and gravitational const)</param>
-	/// <returns>vector of dimension 3</returns>
+	/// <returns>vector (dU/dx, dU/dy, dU/dz)</returns>
 	general::math::Vec3 acceleration_by_masspoint(
 		const general::math::Vec3& point, 
-		const general::math::Vec3& pos,
+		const general::math::Vec3& masspoint,
 		const double mu);
+	/// <summary>
+	/// a vector of second partial derivatives of the single massive point potential
+	/// </summary>
+	/// <param name="point">is a point to calculate at</param>
+	/// <param name="masspoint">is a position of a single massive point</param>
+	/// <param name="mu">is gravitational parameter</param>
+	/// <returns>vector (ddU/dx/dx, ddU/dy/dy, ddU/dz/dz)<returns>
+	general::math::Vec3 accelerationdiff_by_masspoint(
+		const general::math::Vec3& point,
+		const general::math::Vec3& masspoint,
+		const double mu
+	);
 
 	/// <summary>
 	/// solar functionality representation
@@ -23,7 +35,7 @@ namespace ball
 	class Sun
 	{
 	public:
-		constexpr const static double Mu() { return 1.327124400189e20; }
+		constexpr inline const static double Mu() { return 1.327124400189e20; }
 		/// <summary>
 		/// solar position in spherical and orthogonal ACS
 		/// </summary>
@@ -44,7 +56,7 @@ namespace ball
 	class Moon
 	{
 	public:
-		constexpr const static double Mu() { return 4.90486959e12; }
+		constexpr inline const static double Mu() { return 4.90486959e12; }
 		/// <summary>
 		/// lunar position in spherical and orthogonal ACS
 		/// </summary>

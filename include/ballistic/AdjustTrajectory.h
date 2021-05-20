@@ -17,23 +17,23 @@ namespace ball
 
 	std::vector<general::math::Vector> create_array_of_vectors(const size_t count, const size_t size);
 
-	std::list<std::pair<general::math::PV, general::time::JD>> filter_measurements(
-		std::list<std::pair<general::math::PV, general::time::JD>>& measurements,
+	std::list<std::pair<Vec6, general::time::JD>> filter_measurements(
+		std::list<std::pair<Vec6, general::time::JD>>& measurements,
 		const double dt = 300 / 86400.0,
 		const size_t polydegree = 4);
 
-	std::list<std::pair<general::math::PV, general::time::JD>> filter_measurements(
-		std::list<std::pair<general::math::PV, general::time::JD>>&& measurements,
+	std::list<std::pair<Vec6, general::time::JD>> filter_measurements(
+		std::list<std::pair<Vec6, general::time::JD>>&& measurements,
 		const double dt = 300 / 86400.0,
 		const size_t polydegree = 4);
 
 	template<class Iterator>
-	std::list<std::pair<general::math::PV, general::time::JD>> filter_measurements(
+	std::list<std::pair<Vec6, general::time::JD>> filter_measurements(
 		Iterator first, Iterator last,
 		const double dt = 300 / 86400.0,
 		const size_t polydegree = 4)
 	{
-		return filter_measurements(std::list<std::pair<general::math::PV, general::time::JD>>(first, last), dt, polydegree);
+		return filter_measurements(std::list<std::pair<Vec6, general::time::JD>>(first, last), dt, polydegree);
 	}
 
 	/// <summary>
@@ -52,7 +52,7 @@ namespace ball
 	/// <param name="measurements"> - an amount of measuring data</param>
 	/// <param name="vars"> - a number of coordinates to consider</param>
 	/// <param name="vec"> - a vector of residuals</param>
-	template<StdContainer<std::pair<general::math::PV, general::time::JD>> Container>
+	template<StdContainer<std::pair<Vec6, general::time::JD>> Container>
 	void _calc_residuals(
 		const std::vector<State>& trajectory,
 		const Container& measurements,
@@ -62,7 +62,7 @@ namespace ball
 		size_t index{ 0 }, count{ 0 };
 		for (auto iter = measurements.cbegin(); iter != measurements.cend(); ++iter, ++count)
 			for (size_t n = 0; n < vars; ++n)
-				vec[index++] = iter->first[n] - trajectory[count].Vec[n];
+				vec[index++] = iter->first[n] - trajectory[count].vec[n];
 	}
 	/// <summary>
 	/// Calculating the matrix of partial derivatives
@@ -73,7 +73,7 @@ namespace ball
 	/// <param name="vars"> - a number of coordinates to consider</param>
 	/// <param name="matrix"> - a matrix of partial derivatives</param>
 	/// <returns>a calculated trajectory</returns>
-	template<StdContainer<std::pair<general::math::PV, general::time::JD>> Container>
+	template<StdContainer<std::pair<Vec6, general::time::JD>> Container>
 	std::vector<State> _calc_partial_derivatives(
 		const State& x0,
 		const Container& measurements,
@@ -86,7 +86,7 @@ namespace ball
 		auto traj = calc_trajectory(x0, measurements);
 		std::future<std::vector<State>> futures[6];
 		for (size_t i = 0; i < 6; ++i) {
-			xlist[i].Vec[i] += deltas[i];
+			xlist[i].vec[i] += deltas[i];
 			futures[i] = std::async(std::launch::async, calc_trajectory, xlist[i], measurements);
 		}
 		xlist[6].Sb += deltas[6];
@@ -94,13 +94,13 @@ namespace ball
 		size_t index{ 0 };
 		for (size_t n = 0; n < traj.size(); ++n)
 			for (size_t k = 0; k < vars; ++k)
-				matrix(index++, 6) = (varied[n].Vec[k] - traj[n].Vec[k]) / deltas[6];
+				matrix(index++, 6) = (varied[n].vec[k] - traj[n].vec[k]) / deltas[6];
 		for (size_t i = 0; i < 6; ++i) {
 			index = 0;
 			varied = futures[i].get();
 			for (size_t n = 0; n < traj.size(); ++n)
 				for (size_t k = 0; k < vars; ++k)
-					matrix(index++, i) = (varied[n].Vec[k] - traj[n].Vec[k]) / deltas[i];
+					matrix(index++, i) = (varied[n].vec[k] - traj[n].vec[k]) / deltas[i];
 		}
 		return traj;
 	}
@@ -114,7 +114,7 @@ namespace ball
 	/// <param name="iterations"> - a max number of iterations for optimization</param>
 	/// <param name="pLogstrbuf"> - a pointer to the logging stream</param>
 	/// <returns>a number of iterations required for solution</returns>
-	template<StdContainer<std::pair<general::math::PV, general::time::JD>> Container>
+	template<StdContainer<std::pair<Vec6, general::time::JD>> Container>
 	size_t refine_initpoint(
 		State& x0,
 		const Container& measurements,
@@ -147,12 +147,12 @@ namespace ball
 			for (size_t i = 0; i < 7; ++i) D(i, i) = 1 / std::sqrt(M(i, i));
 			M = AxD(DxA(D, M), D);
 			auto dx0 = AxD(DxA(D, inverse(M)), D) * BT * L;
-			x0.Vec.pos.x() += dx0[0];
-			x0.Vec.pos.y() += dx0[1];
-			x0.Vec.pos.z() += dx0[2];
-			x0.Vec.vel.x() += dx0[3];
-			x0.Vec.vel.y() += dx0[4];
-			x0.Vec.vel.z() += dx0[5];
+			x0.vec[0] += dx0[0];
+			x0.vec[1] += dx0[1];
+			x0.vec[2] += dx0[2];
+			x0.vec[3] += dx0[3];
+			x0.vec[4] += dx0[4];
+			x0.vec[5] += dx0[5];
 			x0.Sb += dx0[6];
 			logout << "Iteration " << iteration << "\nResiduals: " << L << std::endl;
 			auto V = B * dx0 - L;

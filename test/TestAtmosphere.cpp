@@ -30,17 +30,17 @@ int main()
 	double height{ 10e3 };
 	auto [sunsph, sunort] = Sun::positionACS(jd);
 	sunort = ACS_to_GCS(sunort, sidereal_time_true(jd));
-	auto sphpos{ Vec3(EGM96::R() + height, 0, deg_to_rad(349.45)) };
+	auto sphpos{ Vec3({ EGM96::R() + height, 0, deg_to_rad(349.45) }) };
 	std::cout << "F10,7 = " << data.F10_7 << "; F81 = " << data.F81 << "; " << data.Kpsum / 8 << std::endl;
 	std::cout << "Position: " << sphpos << std::endl;
 	for (size_t i = 0; i < 60; ++i) {
 		auto pos{ sph_to_ort(sphpos) };
 		std::cout << "h = " << height
 			<< "; msa rho = " << stat_atm.density(pos, jd)
-			<< "; mda rho = " << dynm_atm.density(pos, jd, sunort, sunsph.y())
+			<< "; mda rho = " << dynm_atm.density(pos, jd, sunort, sunsph[1])
 			<< std::endl;
 		height += delta;
-		sphpos.x() += delta;
+		sphpos[0] += delta;
 	}
 	return 0;
 }

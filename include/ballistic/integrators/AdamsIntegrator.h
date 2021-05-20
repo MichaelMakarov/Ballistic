@@ -43,21 +43,19 @@ namespace ball
 			const Func<Inv, R, T>& func) const
 		{
 			xk = R();
-			auto xt{ _b[0] * func(*pR, *pT) };
+			auto xt{ func(*pR, *pT) * _b[0] };
 			R xb;
 			for (size_t i = 1; i < 8; ++i) {
-				pR++;
-				pT++;
+				++pR;
+				++pT;
 				xb = func(*pR, *pT);
-				// prediction
-				xt += _b[i] * xb;
-				// correction
-				xk += _c[i - 1] * xb;
+				xt += xb * _b[i];		// prediction
+				xk += xb * _c[i - 1];	// correction
 			}
 			xt *= step;
 			xt += (*pR); 
 			tk = (*pT) + step;
-			xk += _c[7] * func(xt, tk);
+			xk += func(xt, tk) * _c[7];
 			xk *= step;
 			xk += (*pR);
 		}

@@ -23,10 +23,10 @@ namespace ball
 			auto t = t0 + step_2;
 			tk = t0 + step;
 			auto k1{ func(x0, t0) };
-			auto k2{ func(x0 + step_2 * k1, t) };
-			auto k3{ func(x0 + step_2 * k2, t) };
-			auto k4{ func(x0 + step * k3, tk) };
-			xk = x0 + step_6 * (k1 + 2 * (k2 + k3) + k4);
+			auto k2{ func(x0 + k1 * step_2, t) };
+			auto k3{ func(x0 + k2 * step_2, t) };
+			auto k4{ func(x0 + k3 * step,  tk) };
+			xk = x0 + (k1 + (k2 + k3) * 2 + k4) * step_6;
 		}
 	};
 }

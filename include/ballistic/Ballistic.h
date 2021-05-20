@@ -13,9 +13,9 @@ namespace ball
 	template<class T>
 	concept TransModel = std::is_base_of<TranslationModel<T>, T>::value;
 	template<class Int>
-	concept PVSinglestepInt = std::is_base_of<SinglestepIntegrator<Int, general::math::PV, general::time::JD>, Int>::value;
+	concept PVSinglestepInt = std::is_base_of<SinglestepIntegrator<Int, Vec6, general::time::JD>, Int>::value;
 	template<class Int>
-	concept PVMultistepInt = std::is_base_of<MultistepIntegrator<Int, general::math::PV, general::time::JD>, Int>::value;
+	concept PVMultistepInt = std::is_base_of<MultistepIntegrator<Int, Vec6, general::time::JD>, Int>::value;
 	
 	/// <summary>
 	/// Object provides the functionality for ballistic calculation.
@@ -26,7 +26,7 @@ namespace ball
 	{
 	private:
 		std::unique_ptr<TranslationModel<Model>> _pModel;
-		std::vector<general::math::PV> _trajectory;
+		std::vector<Vec6> _trajectory;
 		std::vector<general::time::JD> _times;
 		std::vector<size_t> _loops;
 		double _deltatime;
@@ -37,12 +37,12 @@ namespace ball
 			const double start_step, 
 			const double continue_step, 
 			const size_t index, 
-			const SinglestepIntegrator<SinglestepInt, general::math::PV, general::time::JD>& integrator)
+			const SinglestepIntegrator<SinglestepInt, Vec6, general::time::JD>& integrator)
 		{
 			auto x0{ _trajectory[0] };
 			auto t0{ _times[0] };
-			auto xk{ general::math::PV() };
-			auto tk{ general::time::JD() };
+			Vec6 xk;
+			general::time::JD tk;
 			auto func{ make_memberfunc(&TranslationModel<Model>::function, _pModel.get()) };
 			bool intersection;
 			const size_t n{ static_cast<size_t>(continue_step / start_step) };
@@ -51,7 +51,7 @@ namespace ball
 				_loops[i + 1] = _loops[i];
 				for (size_t k = 0; k < n; ++k) {
 					integrator.integrate(x0, t0, step, xk, tk, func);
-					intersection = std::signbit(x0.pos.z()) == true && std::signbit(xk.pos.z()) == false;
+					intersection = std::signbit(x0[2]) == true && std::signbit(xk[2]) == false;
 					x0 = xk;
 					t0 = tk;
 					if (intersection) _loops[i + 1] += 1;
@@ -65,7 +65,7 @@ namespace ball
 		void continue_run(
 			const double step,
 			const size_t index,
-			const MultistepIntegrator<MultistepInt, general::math::PV, general::time::JD>& integrator)
+			const MultistepIntegrator<MultistepInt, Vec6, general::time::JD>& integrator)
 		{
 			bool intersection;
 			auto x_iter{ _trajectory.cbegin() };
@@ -73,7 +73,7 @@ namespace ball
 			auto func{ make_memberfunc(&TranslationModel<Model>::function, _pModel.get()) };
 			for (size_t i = index; i < _trajectory.size() - 1; ++i) {
 				integrator.integrate(x_iter._Ptr, t_iter._Ptr, step, _trajectory[i + 1], _times[i + 1], func);
-				intersection = std::signbit(_trajectory[i].pos.z()) == true && std::signbit(_trajectory[i + 1].pos.z()) == false;
+				intersection = std::signbit(_trajectory[i][2]) == true && std::signbit(_trajectory[i + 1][2]) == false;
 				_loops[i + 1] = _loops[i] + (intersection ? 1 : 0);
 				++x_iter;
 				++t_iter;
@@ -83,7 +83,7 @@ namespace ball
 		template<PVSinglestepInt SinglestepInt>
 		void single_run(
 			const double step,
-			const SinglestepIntegrator<SinglestepInt, general::math::PV, general::time::JD>& integrator)
+			const SinglestepIntegrator<SinglestepInt, Vec6, general::time::JD>& integrator)
 		{
 			bool intersection;
 			auto func{ make_memberfunc(&TranslationModel<Model>::function, _pModel.get()) };
@@ -93,7 +93,7 @@ namespace ball
 				auto& xk{ _trajectory[i + 1] };
 				auto& tk{ _times[i + 1] };
 				integrator.integrate(x0, t0, step, xk, tk, func);
-				intersection = std::signbit(x0.pos.z()) == true && std::signbit(xk.pos.z()) == false;
+				intersection = std::signbit(x0[2]) == true && std::signbit(xk[2]) == false;
 				_loops[i + 1] = _loops[i] + (intersection ? 1 : 0);
 			}
 		}
@@ -142,8 +142,8 @@ namespace ball
 		void run(
 			const State& x0,
 			const general::time::JD& tk,
-			SinglestepIntegrator<SinglestepInt, general::math::PV, general::time::JD>& singlestep_int,
-			MultistepIntegrator<MultistepInt, general::math::PV, general::time::JD>& multistep_int,
+			SinglestepIntegrator<SinglestepInt, Vec6, general::time::JD>& singlestep_int,
+			MultistepIntegrator<MultistepInt, Vec6, general::time::JD>& multistep_int,
 			const double step = 30.0)
 		{
 			if (step < 1.0)
@@ -157,9 +157,9 @@ namespace ball
 			_times.resize(count);
 			_loops.resize(count);
 
-			_trajectory[0] = x0.Vec;
+			_trajectory[0] = x0.vec;
 			_times[0] = x0.T;
-			_loops[0] = x0.Loop;
+			_loops[0] = x0.loop;
 			_pModel->sBall = x0.Sb;
 			// performing initial calculations
 			start_run(step / 6, step, index, singlestep_int);
@@ -182,8 +182,8 @@ namespace ball
 		void run(
 			const State& x0, 
 			const general::time::JD& tk,
-			SinglestepIntegrator<SinglestepInt, general::math::PV, general::time::JD>&& singlestep_int,
-			MultistepIntegrator<MultistepInt, general::math::PV, general::time::JD>&& multistep_int,
+			SinglestepIntegrator<SinglestepInt, Vec6, general::time::JD>&& singlestep_int,
+			MultistepIntegrator<MultistepInt, Vec6, general::time::JD>&& multistep_int,
 			const double step = 30.0)
 		{
 			run<MultistepInt, SinglestepInt>(x0, tk, singlestep_int, multistep_int, step);
@@ -193,7 +193,7 @@ namespace ball
 		void run(
 			const State& x0,
 			const general::time::JD& tk,
-			SinglestepIntegrator<SinglestepInt, general::math::PV, general::time::JD>& integrator,
+			SinglestepIntegrator<SinglestepInt, Vec6, general::time::JD>& integrator,
 			const double step = 30.0)
 		{
 			if (step < 1.0)
@@ -206,9 +206,9 @@ namespace ball
 			_times.resize(count);
 			_loops.resize(count);
 
-			_trajectory[0] = x0.Vec;
+			_trajectory[0] = x0.vec;
 			_times[0] = x0.T;
-			_loops[0] = x0.Loop;
+			_loops[0] = x0.loop;
 			_pModel->sBall = x0.Sb;
 
 			single_run(step, integrator);
@@ -218,7 +218,7 @@ namespace ball
 		void run(
 			const State& x0,
 			const general::time::JD& tk,
-			SinglestepIntegrator<SinglestepInt, general::math::PV, general::time::JD>&& integrator,
+			SinglestepIntegrator<SinglestepInt, Vec6, general::time::JD>&& integrator,
 			const double step = 30.0)
 		{
 			run<SinglestepInt>(x0, tk, integrator, step);
@@ -235,7 +235,7 @@ namespace ball
 			auto index = static_cast<size_t>((time - _times[0]) / _deltatime);
 			if (index < count) {
 				// checking the value sign of the z coordinate of the nearest point
-				bool intersection = std::signbit(_trajectory[index].pos.z()) == true;
+				bool intersection = std::signbit(_trajectory[index][2]) == true;
 				const size_t loop{ _loops[index] };
 				// get the index of the first point for the interpolation
 				index = static_cast<size_t>(
@@ -245,7 +245,7 @@ namespace ball
 					));
 				// hence the interpolation performing
 				// P(t) = sum{n = 0..4} (mult{m = 0..4, m != n} (t - t_m)/(t_n - t_m)) x_n
-				general::math::PV result;
+				Vec6 result;
 				double mult;
 				size_t indexn{ index };
 				for (size_t n = 0; n < 4; ++n) {
@@ -257,7 +257,7 @@ namespace ball
 					}
 					result += mult * _trajectory[indexn++];
 				}
-				intersection = intersection && std::signbit(result.pos.z()) == false;
+				intersection = intersection && std::signbit(result[2]) == false;
 				return State(result, _pModel->sBall, time, loop + intersection ? 1 : 0);
 			}
 			throw std::invalid_argument("Time is out of bounds!");
@@ -267,7 +267,7 @@ namespace ball
 		/// The reference to current trajectory
 		/// </summary>
 		/// <returns>an array of points by reference</returns>
-		const std::vector<general::math::PV>& trajectory() const { return _trajectory; }
+		const std::vector<Vec6>& trajectory() const { return _trajectory; }
 		/// <summary>
 		/// The reference to current list of times corresponding to trajectory points
 		/// </summary>

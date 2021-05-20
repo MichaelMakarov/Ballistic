@@ -31,18 +31,18 @@ namespace ball
 		const double sine{ std::sin(eps) };
 		const double cose{ std::cos(eps) };
 
-		coords.y() = std::atan(sinl * sine / std::sqrt(cosl * cosl + sinl * sinl * cose * cose));
-		coords.z() = std::atan(sinl / cosl * cose);
+		coords[1] = std::atan(sinl * sine / std::sqrt(cosl * cosl + sinl * sinl * cose * cose));
+		coords[2] = std::atan(sinl / cosl * cose);
 
-		if (coords.z() < 0.0) {
-			if (coords.y() < 0.0) coords.z() += PI2;
-			else coords.z() += PI;
+		if (coords[2] < 0.0) {
+			if (coords[1] < 0.0) coords[2] += PI2;
+			else coords[2] += PI;
 		} else {
-			if (coords.y() < 0.0) coords.z() += PI;
+			if (coords[1] < 0.0) coords[2] += PI;
 		}
-		coords.z() += 0.061165 * psi - hi;
-		coords.y() += hi * sine * cosl;
-		coords.x() = ac * (1 - e * (std::cos(L - lc) - e * 0.5 * (1 - std::cos(2 * (L - lc)))));
+		coords[2] += 0.061165 * psi - hi;
+		coords[1] += hi * sine * cosl;
+		coords[0] = ac * (1 - e * (std::cos(L - lc) - e * 0.5 * (1 - std::cos(2 * (L - lc)))));
 
 		return std::make_pair(coords, sph_to_ort(coords));
 	}
@@ -98,7 +98,7 @@ namespace ball
 			0.6215 * std::cos(3 * la) + 0.601 * std::cos(la - 4 * d));
 		double radius = r / paralax;
 		Vec3 coords = ECS_to_ACS(
-			sph_to_ort({ radius, latitude, longitude }), 
+			sph_to_ort(Vec3({ radius, latitude, longitude })), 
 			sec_to_rad(84381.448 - (46.815 + (0.00059 - 0.001813 * t) * t) * t));
 		return std::make_pair(ort_to_sph(coords), coords);
 	}
@@ -114,4 +114,16 @@ namespace ball
 		auto diff = pos - point;
 		return mu * (diff / std::pow(diff.length(), 3) - pos / std::pow(pos.length(), 3));
 	}
+
+	general::math::Vec3 accelerationdiff_by_masspoint(const general::math::Vec3& point, const general::math::Vec3& pos, const double mu)
+	{
+		using namespace general::math;
+		auto diff{ pos - point };
+		const double dist = diff.length();
+		diff[0] *= diff[0];
+		diff[1] *= diff[1];
+		diff[2] *= diff[2];
+		return -mu / std::pow(dist, 3) * (Vec3::ones() + diff * 3 / point.length() / dist);
+	}
+	
 }

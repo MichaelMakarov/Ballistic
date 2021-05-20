@@ -1,5 +1,5 @@
 #pragma once
-#include "general/Geometry.h"
+#include "general/Matrix.h"
 #include "EarthModel.h"
 #include "general/Mathematics.h"
 #include <memory>
@@ -18,6 +18,7 @@ namespace ball
 
 		void calc_trigonometric(const double coslambda, const double sinlambda);
 		void calc_polynoms(const double cosphi, const double sinphi);
+		
 
 	public:
 		/// <summary>
@@ -41,14 +42,20 @@ namespace ball
 		/// <summary>
 		/// Calculating the value of Earth's potential
 		/// </summary>
-		/// <param name="coordinates"> - a point in GCS where to calculate geopotential</param>
+		/// <param name="point"> - a point in GCS where to calculate geopotential</param>
 		/// <returns>geopotential value</returns>
-		double operator () (const general::math::Vec3& coordinates);
+		double operator () (const general::math::Vec3& point);
 		/// <summary>
-		/// Calculating the acceleration by the potential
+		/// Calculating the potential derivatives with respect to geocentric cartesian coordinates 
 		/// </summary>
-		/// <param name="coordinates"> - a point in GCS where to calculate geopotential acceleration</param>
-		/// <returns>a vector of accelerations</returns>
-		general::math::Vec3 acceleration(const general::math::Vec3& coordinates);
+		/// <param name="point"> - a point in GCS where to calculate the geopotential</param>
+		/// <returns>a vector of partial derivatives (dU/dx, dU/dy, dU/dz)</returns>
+		general::math::Vec3 derivatives(const general::math::Vec3& point);
+		/// <summary>
+		/// Calculating the potential derivatives of the first and second degree with respect to geocentric cartesian coordinates
+		/// </summary>
+		/// <param name="point"> - a point in GCS where to calculate the geopotential</param>
+		/// <returns>a vector of first degree derivatives and matrix of second degree partial derivatives</returns>
+		std::pair<general::math::Vec3, general::math::Matrix3x3> fullderivatives(const general::math::Vec3& point);
 	};
 }

@@ -6,8 +6,8 @@ namespace ball
 {
     std::ostream& operator<<(std::ostream& os, const State& p)
     {
-        os << "T: " << p.T.to_datetime() << "; Vec: " << p.Vec << "; s = " <<
-            p.Sb << "; loop = " << p.Loop;
+        os << "T: " << p.T.to_datetime() << "; Vec: " << p.vec << "; s = " <<
+            p.Sb << "; loop = " << p.loop;
         return os;
     }
 
@@ -15,7 +15,9 @@ namespace ball
     {
         os << "T: " << p.T << "; a = " << p.A << "; e = " << p.E <<
             "; i = " << p.I << "; w = " << p.W << "; o = " << p.O <<
-            "; M = " << p.M << "; s = " << p.Sb << "; loop = " << p.Loop;
+            "; M = " << p.M << "; s = " << p.Sb << "; loop = " << p.loop;
         return os;
     }
+
+	
 }

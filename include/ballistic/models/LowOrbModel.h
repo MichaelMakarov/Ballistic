@@ -38,35 +38,17 @@ namespace ball
 		/// <param name="vec"> - vector in GCS</param>
 		/// <param name="t"> - relevant time</param>
 		/// <returns>an acceleration</returns>
-		general::math::PV function(const general::math::PV& vec, const general::time::JD& t)
-		{
-			double w_2{ _eW * _eW };
-			double h = GCS_height_from_position(vec.pos, _eR, _eFl);
-			if (h > this->MinHeight && h < this->MaxHeight) {
-				// geopotential aceleration with a centrifugal and a coriolis force
-				auto acpot{ _geopotential.acceleration(vec.pos) };
-				double density{ _atmosphere.density(vec.pos, t) };
-				double acatm = vec.vel.length() * density * this->sBall;
-				// atmosphere aceleration a = v * s * rho, 
-				// s - a ballistic coefficient,
-				// v - a velocity of the vehicle,
-				// rho - a density of the atmosphere
-				// the addition all the components
-				return general::math::PV(
-					vec.vel.x(), vec.vel.y(), vec.vel.z(),
-					acpot.x() + w_2 * vec.pos.x() + 2 * _eW * vec.vel.y() - acatm * vec.vel.x(),
-					acpot.y() + w_2 * vec.pos.y() - 2 * _eW * vec.vel.x() - acatm * vec.vel.y(),
-					acpot.z() - acatm * vec.vel.z()
-				);
-			}
-			throw std::runtime_error("Height is out of bounds!");
-		}
+		Vec6 function(const Vec6& vec, const general::time::JD& t);
 	};
 	/// <summary>
-	/// A model of forecast implements dynamic atmosphere standard (GOST 2004) and geopotential model
+	/// A model of forecast implements:
+	/// geopotential model,
+	/// dynamic atmosphere standard (GOST 2004),
+	/// simple solar and lunar potential models
 	/// </summary>
 	class DynAtmModel : public TranslationModel<DynAtmModel>
 	{
+		using EV = general::math::Vec<13>;
 	private:
 		GeoPotential _geopotential;
 		Atmosphere2004 _atmosphere;
@@ -104,33 +86,76 @@ namespace ball
 		/// <param name="vec"> - vector in GCS</param>
 		/// <param name="t"> - relevant time</param>
 		/// <returns>an aceleration</returns>
-		general::math::PV function(const general::math::PV& vec, const general::time::JD& t)
+		Vec6 function(const Vec6& vec, const general::time::JD& t);
+
+		EV extfunction(const EV& vec, const general::time::JD& t);
+	};
+	/// <summary>
+	/// A model of forecast implements:
+	/// geopotential model,
+	/// dynamic atmosphere standard (GOST 2004) with variable ballistic parameter,
+	/// simple solar and lunar potential models
+	/// </summary>
+	class VarBallModel : public TranslationModel<VarBallModel>
+	{
+		/// <summary>
+		/// 16d vector (x, y, z, vx, vy, vz, dx, dy, dz, dvx, dvy, dvz, sb, sam, sfr, sph)
+		/// </summary>
+		using EV = general::math::Vec<16>;
+	private:
+		GeoPotential _geopotential;
+		Atmosphere2004 _atmosphere;
+		double _eW, _eFl, _eR;
+	public:
+		double sAmpl = 0.0;	// an amplitude of ballistic coefficient variation
+		double sFreq = 1.0;	// a frequency of ballistic coefficient variation
+		double sPhas = 0.0;	// a phase of ballisitc coefficient variation
+	private:
+		double ball_coefficient(const general::time::JD& t) noexcept
 		{
-			double w_2{ _eW * _eW };
-			double h = GCS_height_from_position(vec.pos, _eR, _eFl);
-			if (h > this->MinHeight && h < this->MaxHeight) {
-				auto [sunsph, sunort] = Sun::positionACS(t);
-				sunort = ACS_to_GCS(sunort, sidereal_time_avr(t));
-				double density = _atmosphere.density(vec.pos, t, sunort, sunsph.y());
-				double acatm = vec.vel.length() * density * this->sBall;
-				// acelerations by geopotential, sun and moon
-				auto acpot = _geopotential.acceleration(vec.pos);
-				auto acsun = acceleration_by_masspoint(vec.pos, sunort, Sun::Mu());
-				auto acmoon =  Moon::acceleration(vec.pos, t);
-				acpot += acsun + acmoon;
-				// atmosphere aceleration a = v * s * rho, 
-				// s - a ballistic coefficient,
-				// v - a velocity of the vehicle,
-				// rho - a density of the atmosphere
-				// the addition all the components
-				return general::math::PV(
-					vec.vel.x(), vec.vel.y(), vec.vel.z(),
-					acpot.x() + w_2 * vec.pos.x() + 2 * _eW * vec.vel.y() - acatm * vec.vel.x(),
-					acpot.y() + w_2 * vec.pos.y() - 2 * _eW * vec.vel.x() - acatm * vec.vel.y(),
-					acpot.z() - acatm * vec.vel.z()
-				);
-			}
-			throw std::runtime_error("Height is out of bounds!");
+			return this->sBall + this->sAmpl * std::sin(this->sFreq * t.to_double() + sPhas);
 		}
+
+	public:
+		/// <summary>
+		/// Creating a sample of a class
+		/// </summary>
+		/// <param name="eMu"> - gravitational constant</param>
+		/// <param name="eR"> - Earth's equator</param>
+		/// <param name="eW"> - angular velocity of rotation</param>
+		/// <param name="eFl"> - Earth;s flatening</param>
+		/// <param name="f10_7"> - daily averaged ISA</param>
+		/// <param name="f81"> - 81 daily averaged ISA</param>
+		/// <param name="kp"> - daily averaged IGP</param>
+		/// <param name="gravity"> - a gravity model</param>
+		/// <param name="harmonics"> - a number of harmonics</param>
+		VarBallModel(
+			const double eMu, const double eR,
+			const double eW, const double eFl,
+			const double f10_7, const double f81, const double kp,
+			const IEarth& gravity,
+			const size_t harmonics) :
+			_atmosphere{ Atmosphere2004(eR, eFl, f10_7, f81, kp) },
+			_geopotential{ GeoPotential(eMu, eR, gravity, harmonics) },
+			_eW{ eW },
+			_eFl{ eFl },
+			_eR{ eR }
+		{}
+		~VarBallModel() = default;
+
+		/// <summary>
+		/// Calculating the right part of the differential equation using vector and time
+		/// </summary>
+		/// <param name="vec"> - vector in GCS</param>
+		/// <param name="t"> - relevant time</param>
+		/// <returns>a vector of position and velocity</returns>
+		Vec6 function(const Vec6& vec, const general::time::JD& t);
+		/// <summary>
+		/// Calculating the extended right part of the differential equations with variations
+		/// </summary>
+		/// <param name="vec">is a vector in GCS</param>
+		/// <param name="t">is relevant time</param>
+		/// <returns>an extended vector</returns>
+		EV extfunction(const EV& vec, const general::time::JD& t);
 	};
 }

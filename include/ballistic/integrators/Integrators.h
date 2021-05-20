@@ -12,7 +12,6 @@ namespace ball
 			{ a / b };
 			{ a *= b };
 			{ a /= b };
-			{ b * a };
 		} && requires (T a, T b) { 
 			{ a += b };
 			{ a -= b };

@@ -1,5 +1,5 @@
 #include "Atmosphere.h"
-#include "general/Geometry.h"
+#include "general/Vector.h"
 
 namespace ball
 {

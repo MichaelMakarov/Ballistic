@@ -50,7 +50,7 @@ namespace ball
 			auto calc_x = [xk, x0, step](const std::array<R, degree>& c, const double t) {
 				R result;
 				for (long long i = degree - 1; i >= 0; --i) {
-					result += c[i] / static_cast<double>(i + 2);
+					result += c[i] * (1.0 / (i + 2));
 					result *= t;
 				}
 				return (result + xk) * t * step + x0;
@@ -68,13 +68,13 @@ namespace ball
 					for (size_t m = 0; m < degree; ++m) {
 						b[m] = R();
 						for (size_t n = m; n < degree; ++n)
-							b[m] += _matrix(m, n) * a[n];
+							b[m] += a[n] * _matrix(m, n);
 					}
 				}
 			}
 			tk = t0 + step;
 			for (size_t i = 0; i < degree; ++i)
-				xk += b[i] / static_cast<double>(i + 2);
+				xk += b[i] * (1.0 / (i + 2));
 			xk *= step;
 			xk += x0;
 		}
