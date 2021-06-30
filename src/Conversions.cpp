@@ -3,7 +3,7 @@
 
 namespace ball
 {
-	double GCS_height_from_position(
+	double height_from_gcsposition(
 		const general::math::Vec3& pos,
 		const double rad, const double fl)
 	{
@@ -50,63 +50,64 @@ namespace ball
 			vec[0] * std::sin(vec[2]) * cosB,
 			vec[0] * std::sin(vec[1]) });
 	}
-	general::math::Vec3 ACS_to_GCS(const general::math::Vec3& vec, const double t)
+	general::math::Vec3 ACS_to_GCS(const general::math::Vec3& vec, const double sidereal_time)
 	{
-		const double sint{ std::sin(t) }, cost{ std::cos(t) };
-		return general::math::Vec3({
+		const double sint = std::sin(sidereal_time), cost = std::cos(sidereal_time);
+		return general::math::Vec3{
 			vec[0] * cost + vec[1] * sint,
 			vec[1] * cost - vec[0] * sint,
-			vec[2] });
+			vec[2] };
 	}
-	general::math::Vec3 GCS_to_ACS(const general::math::Vec3& vec, const double t)
+	general::math::Vec3 GCS_to_ACS(const general::math::Vec3& vec, const double sidereal_time)
 	{
-		const double sint{ std::sin(t) }, cost{ std::cos(t) };
-		return general::math::Vec3({
+		const double sint = std::sin(sidereal_time), cost = std::cos(sidereal_time);
+		return general::math::Vec3{
 			vec[0] * cost - vec[1] * sint,
 			vec[1] * cost + vec[0] * sint,
-			vec[2] });
+			vec[2] };
 	}
 	general::math::Vec3 ECS_to_ACS(const general::math::Vec3& vec, const double e)
 	{
-		const double sine{ std::sin(e) }, cose{ std::cos(e) };
-		return general::math::Vec3({
+		const double sine = std::sin(e), cose = std::cos(e);
+		return general::math::Vec3{
 			vec[0],
 			vec[1] * cose - vec[2] * sine,
-			vec[1] * sine + vec[2] * cose }
-		);
+			vec[1] * sine + vec[2] * cose
+		};
 	}
 	general::math::Vec3 ACS_to_ECS(const general::math::Vec3& vec, const double e)
 	{
-		const double sine{ std::sin(e) }, cose{ std::cos(e) };
-		return general::math::Vec3({
+		const double sine = std::sin(e), cose = std::cos(e);
+		return general::math::Vec3{
 			vec[0],
 			vec[2] * sine + vec[1] * cose,
 			vec[2] * cose - vec[1] * sine
-		});
-	}
-	double jd_to_jc2000(const general::time::JD& jd)
-	{
-		return (jd - (general::time::JD2000 + 0.5)).to_double() / 36525;
+		};
 	}
 
-	double sidereal_time(const double m, const double t)
+	Oscul oscul_from_ACS(
+		const general::math::Vec3& pos,
+		const general::math::Vec3& vel,
+		const double mu) 
 	{
 		using namespace general::math;
-		return rad_to_2pi(1.7533685592 + 6.2831853072 * m +	t * (0.0172027918051 * 36525 + t * (6.7707139e-6 - 4.50876e-10 * t)));
-	}
-	double sidereal_time_avr(const general::time::JD& jd, const double timezone)
-	{
-		return sidereal_time(jd.T() - timezone / 24.0, jd_to_jc2000(jd - timezone / 24.0));
-	}
-	double sidereal_time_true(const general::time::JD& jd, const double timezone)
-	{
-		using namespace general::math;
-		double t{ jd_to_jc2000(jd - timezone / 24.0) };
-		// ecliptic average longitude of lunar ascending node
-		const double omega = sec_to_rad(450160.280 - (5 * SEC_PER_ROUND + 482890.539 - (7.455 + 0.008 * t) * t) * t);
-		// the Earth's nutation in ascension
-		const double nut = 0.061165 * sec_to_rad(-17.1996 * std::sin(omega));
-		return rad_to_2pi(sidereal_time_avr(jd, timezone) + nut);
+		Oscul osc;
+		const Vec3 h = cross(pos, vel);
+		const auto w = normalize(h);
+		const double p{ h * h / mu };
+		const double r{ pos.length() };
+		osc.inclination = std::atan(std::sqrt(w[0] * w[0] + w[1] * w[1]) / w[2]);
+		osc.ascendnode = std::atan2(w[0], -w[1]);
+		osc.semiaxis = 1 / (2 / pos.length() - vel * vel / mu);
+		osc.eccentricity = std::sqrt(1 - p / osc.semiaxis);
+		osc.ecanomaly = std::atan((pos * vel) / std::sqrt(osc.semiaxis * mu) / (1 - r / osc.semiaxis));
+		osc.meananomaly = osc.ecanomaly - osc.eccentricity * std::sin(osc.ecanomaly);
+		osc.trueanomaly = std::atan2(
+			std::sqrt(1 - osc.eccentricity * osc.eccentricity) * std::sin(osc.ecanomaly),
+			std::cos(osc.ecanomaly) - osc.eccentricity);
+		osc.latitudearg = std::atan2(pos[2], pos[1] * w[0] - pos[0] * w[1]);
+		osc.periapsis = osc.trueanomaly - osc.latitudearg;
+		return osc;
 	}
 
 }

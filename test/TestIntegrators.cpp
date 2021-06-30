@@ -36,12 +36,12 @@ void pendulum_integration()
 	double t;
 
 	auto func = [w](const Vec2& x, const double& t) -> Vec2 { return Vec2({ x[1], x[0] * (-w * w) }); };
-	auto invoker{ make_classfunc<Vec2, double, decltype(func)>(&func) };
+	auto invoker = make_classfunc<decltype(func), Vec2, const Vec2&, const double&>(func);
 
 	std::cout << "RK\n";
 	auto rkangles{ std::vector<Vec2>(n) };
 	rkangles[0] = Vec2({ a, 0 });
-	auto rkint{ RKIntegrator<Vec2, double>() };
+	rk_integrator<Vec2, double> rkint;
 	//rkint.func = func;
 	for (size_t i = 1; i < n; ++i) rkint.integrate(rkangles[i - 1], time[i - 1], dt, rkangles[i], t, invoker);
 	save("RK results.txt", rkangles, time);
@@ -49,7 +49,7 @@ void pendulum_integration()
 	std::cout << "Everhart\n";
 	auto evangles{ std::vector<Vec2>(n) };
 	evangles[0] = Vec2({ a, 0 });
-	auto evint{ EverhartIntegrator<Vec2, double, 4>() };
+	everhart_integrator<Vec2, double, 4> evint;
 	//evint.func = func;
 	for (size_t i = 1; i < n; ++i) evint.integrate(evangles[i - 1], time[i - 1], dt, evangles[i], t, invoker);
 	save("Ev results.txt", evangles, time);
@@ -67,8 +67,8 @@ void pendulum_integration()
 template<Arithmetic X, ball::Time T, class Int, class F>
 std::vector<std::pair<X, T>> integrate(
 	const X& x0, const T& t0, const double dt, const size_t n,
-	const SinglestepIntegrator<Int, X, T>& integrator, 
-	const Func<F, X, T>& func)
+	const singlestep_integrator<Int, X, T>& integrator, 
+	const invoker<F, X, const X&, const T&>& func)
 {
 	if (dt <= 0) throw std::invalid_argument("Invalid dt <= 0!");
 	auto data = std::vector<std::pair<X, T>>(n);
@@ -81,8 +81,8 @@ std::vector<std::pair<X, T>> integrate(
 template<Arithmetic X, ball::Time T, class F>
 void integrate_by_adams(
 	std::vector<X>& xlist, std::vector<T>& tlist, const double dt,
-	const AdamsIntegrator<X, T>& integrator,
-	const  Func<F, X, T>& func)
+	const adams_integrator<X, T>& integrator,
+	const invoker<F, X, const X&, const T&>& func)
 {
 	if (dt <= 0) throw std::invalid_argument("Invalid dt <= 0!");
 	auto ptr_x = xlist.cbegin();
@@ -105,7 +105,7 @@ void orbit_integration()
 		const double mult = -mu / r0 / r0 / std::sqrt(vec[0] * vec[0] + vec[1] * vec[1] + vec[2] * vec[2]);
 		return Vec6{ { vec[3], vec[4], vec[5], vec[0] * mult, vec[1] * mult, vec[2] * mult } };
 	};
-	auto invoker{ make_classfunc<Vec6, double>(&func) };
+	auto invoker{ make_classfunc<decltype(func), Vec6, const Vec6&, const double&>(func) };
 	const double tk{ 86400 }, t0{ 0 };
 	const double dt{ 30 };
 	size_t n = 1 + static_cast<size_t>((tk - t0) / dt);
@@ -128,14 +128,14 @@ void orbit_integration()
 	sw.finish();
 	std::cout << sw.duration() << std::endl;
 	sw.start();
-	auto traj1 = integrate<Vec6, double, RKIntegrator<Vec6, double>, ClassFunc<Vec6, double, decltype(func)>>(x0, 0, dt, n, RKIntegrator<Vec6, double>(), invoker);
+	auto traj1 = integrate(x0, 0.0, dt, n, rk_integrator<Vec6, double>(), invoker);
 	sw.finish();
 	std::cout << sw.duration() << std::endl;
 	sw.start();
-	auto traj2 = integrate<Vec6, double, EverhartIntegrator<Vec6, double, 7>, ClassFunc<Vec6, double, decltype(func)>>(x0, 0, dt, n, EverhartIntegrator<Vec6, double, 7>(), invoker);
+	auto traj2 = integrate(x0, 0.0, dt, n, everhart_integrator<Vec6, double, 7>(), invoker);
 	sw.finish();
 	std::cout << sw.duration() << std::endl;
-	AdamsIntegrator<Vec6, double> adams;
+	adams_integrator<Vec6, double> adams;
 	auto traj3 = std::vector<Vec6>(traj1.size());
 	auto tlist = std::vector<double>(traj3.size());
 	for (size_t i = 0; i < adams.degree(); ++i) {
@@ -158,8 +158,12 @@ void orbit_integration()
 	fout.close();
 }
 
+
+
+
 int main()
 {
+
 	orbit_integration();
 
 	return 0;

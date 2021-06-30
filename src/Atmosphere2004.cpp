@@ -1,20 +1,16 @@
 #include "Atmosphere2004.h"
 #include "Conversions.h"
 #include "EGM96.h"
-#include <fstream>
+#include "general/GeneralConstants.h"
 #include <algorithm>
 
 namespace ball
 {
-	const double Atmosphere2004::ISA_STEP = 25.0;
-	const double Atmosphere2004::LOWER_H = 120.0;
-	const double Atmosphere2004::UPPER_H = 1500.0;
-	const double Atmosphere2004::NIGHT_DENSITY = 1.58868e-8;
-
 	double days_of_year(const general::time::JD& jd)
 	{
-		auto jd0{ general::time::JD(general::time::DateTime(jd.to_datetime().get_year(), 1, 1, 0, 0, 0)) };
-		return jd - jd0 + 1.0;
+		using namespace general::time;
+		auto jd0{ JD(DateTime(jd_to_datetime(jd).get_year(), 1, 1, 0, 0, 0)) };
+		return (jd - jd0) / SEC_PER_DAY + 1.0;
 	}
 
 	double Atmosphere2004::dynamic_density(
@@ -43,8 +39,6 @@ namespace ball
 		k1 *= std::pow(cosphi, N[0] + h * (N[1] + h * N[2]));
 
 		auto d = D[index];
-		/*double dy{ (jd - 2419768).to_double() };
-		dy -= 1461 * ((4 * dy - 1) / 1461) / 4 - 1;*/
 		double dy = days_of_year(jd);
 		double k2 = A[0] + (A[1] + (A[2] + (A[3] + (A[4] + (A[5] + (A[6] + (A[7] + A[8] * dy) * dy) * dy) * dy) * dy) * dy) * dy) * dy;
 		k2 *= d[0] + (d[1] + (d[2] + (d[3] + d[4] * h) * h) * h) * h;
@@ -79,7 +73,7 @@ namespace ball
 		const double inclination) const
 	{
 		const double dist{ position.length() };
-		const double h = GCS_height_from_position(position, _eR, _eFl) * 1e-3;
+		const double h = height_from_gcsposition(position, _eR, _eFl) * 1e-3;
 		if (h > UPPER_H) return 0.0;
 		if (h < LOWER_H) return static_density(h);
 		else return dynamic_density(h, position, time, sun, inclination);

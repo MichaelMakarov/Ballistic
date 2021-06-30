@@ -8,279 +8,177 @@
 
 namespace ball
 {
-	//using namespace space;
-
-	template<class T>
-	concept TransModel = std::is_base_of<TranslationModel<T>, T>::value;
-	template<class Int>
-	concept PVSinglestepInt = std::is_base_of<SinglestepIntegrator<Int, Vec6, general::time::JD>, Int>::value;
-	template<class Int>
-	concept PVMultistepInt = std::is_base_of<MultistepIntegrator<Int, Vec6, general::time::JD>, Int>::value;
-	
 	/// <summary>
-	/// Object provides the functionality for ballistic calculation.
-	/// The trajectory of the center of mass for the space vehicle can be calculated.
+	/// Implements calculating, store and retrieving of orbit data functionality
 	/// </summary>
-	template<TransModel Model>
-	class Forecast
+	template<size_t dim> class Forecast
 	{
+		using R = general::math::Vec<dim>;
 	private:
-		std::unique_ptr<TranslationModel<Model>> _pModel;
-		std::vector<Vec6> _trajectory;
+		std::vector<R> _trajectory;
 		std::vector<general::time::JD> _times;
 		std::vector<size_t> _loops;
 		double _deltatime;
 
-	private:
-		template<PVSinglestepInt SinglestepInt>
-		void start_run(
-			const double start_step, 
-			const double continue_step, 
-			const size_t index, 
-			const SinglestepIntegrator<SinglestepInt, Vec6, general::time::JD>& integrator)
-		{
-			auto x0{ _trajectory[0] };
-			auto t0{ _times[0] };
-			Vec6 xk;
-			general::time::JD tk;
-			auto func{ make_memberfunc(&TranslationModel<Model>::function, _pModel.get()) };
-			bool intersection;
-			const size_t n{ static_cast<size_t>(continue_step / start_step) };
-			const double step{ continue_step / n };
-			for (size_t i = 0; i < index; ++i) {
-				_loops[i + 1] = _loops[i];
-				for (size_t k = 0; k < n; ++k) {
-					integrator.integrate(x0, t0, step, xk, tk, func);
-					intersection = std::signbit(x0[2]) == true && std::signbit(xk[2]) == false;
-					x0 = xk;
-					t0 = tk;
-					if (intersection) _loops[i + 1] += 1;
-				}
-				_trajectory[i + 1] = xk;
-				_times[i + 1] = tk;
-			}
-		}
-
-		template<PVMultistepInt MultistepInt>
-		void continue_run(
-			const double step,
-			const size_t index,
-			const MultistepIntegrator<MultistepInt, Vec6, general::time::JD>& integrator)
-		{
-			bool intersection;
-			auto x_iter{ _trajectory.cbegin() };
-			auto t_iter{ _times.cbegin() };
-			auto func{ make_memberfunc(&TranslationModel<Model>::function, _pModel.get()) };
-			for (size_t i = index; i < _trajectory.size() - 1; ++i) {
-				integrator.integrate(x_iter._Ptr, t_iter._Ptr, step, _trajectory[i + 1], _times[i + 1], func);
-				intersection = std::signbit(_trajectory[i][2]) == true && std::signbit(_trajectory[i + 1][2]) == false;
-				_loops[i + 1] = _loops[i] + (intersection ? 1 : 0);
-				++x_iter;
-				++t_iter;
-			}
-		}
-
-		template<PVSinglestepInt SinglestepInt>
-		void single_run(
-			const double step,
-			const SinglestepIntegrator<SinglestepInt, Vec6, general::time::JD>& integrator)
-		{
-			bool intersection;
-			auto func{ make_memberfunc(&TranslationModel<Model>::function, _pModel.get()) };
-			for (size_t i = 0; i < _trajectory.size() - 1; ++i) {
-				const auto& x0{ _trajectory[i] };
-				const auto& t0{ _times[i] };
-				auto& xk{ _trajectory[i + 1] };
-				auto& tk{ _times[i + 1] };
-				integrator.integrate(x0, t0, step, xk, tk, func);
-				intersection = std::signbit(x0[2]) == true && std::signbit(xk[2]) == false;
-				_loops[i + 1] = _loops[i] + (intersection ? 1 : 0);
-			}
-		}
-
 	public:
-		/// <summary>
-		/// Initializing a ballistic object 
-		/// </summary>
-		/// <param name="pModel">A pointer to the model of the linear movement</param>
-		explicit Forecast(std::unique_ptr<TranslationModel<Model>>&& pModel) :
-			_pModel{ std::move(pModel) },
-			_deltatime{ 0 }
-		{}
-		Forecast(const Forecast& ball) = delete;
-		Forecast(Forecast&& b) noexcept : 
-			_pModel{ std::move(b._pModel) },
-			_trajectory{ std::move(b._trajectory)},
-			_loops{ std::move(b._loops) },
-			_deltatime{ b._deltatime }
+		Forecast() : _deltatime{ 0 } {}
+		Forecast(const Forecast& other) = default;
+		Forecast(Forecast&& other) noexcept : 
+			_trajectory{ std::move(other._trajectory) },
+			_times{ std::move(other._times) },
+			_loops{ std::move(other._loops) },
+			_deltatime{ std::move(other._deltatime) }
 		{}
 		~Forecast() = default;
 
-		Forecast& operator = (const Forecast& ball) = delete;
-		Forecast& operator = (Forecast&& b) noexcept
+		Forecast& operator= (const Forecast& other) = default;
+		Forecast& operator= (Forecast&& other) noexcept
 		{
-			_pModel = std::move(b._pModel);
-			_trajectory = std::move(b._trajectory);
-			_loops = std::move(b._loops);
-			_deltatime = b._deltatime;
-			_deltatime = 0;
+			_trajectory = std::move(other._trajectory);
+			_times = std::move( other._times);
+			_loops = std::move(other._loops);
+			_deltatime = std::move(other._deltatime);
 			return *this;
 		}
-
 		/// <summary>
-		/// Run the trajectory calculation. 
-		/// Throws an exception when height is out of bounds (MinHeight, MaxHeight) or input arguments are invalid.
+		/// An orbit trajectory
 		/// </summary>
-		/// <typeparam name="MultistepIntType">type of the multistep integrator that inherits the MultistepIntegrator base class</typeparam>
-		/// <typeparam name="SinglestepIntType">type of the multistep integrator that inherits the SinglestepIntegrator base class</typeparam>
-		/// <param name="x0">an initial point</param>
-		/// <param name="tk">final time of the calculation</param>
-		/// <param name="singlestep_int">a multistep intergrator that will be used</param>
-		/// <param name="multistep_int">a single step integrator that will be used to calculate initial points</param>
-		/// <param name="step">time step for the multistep integrator</param>
-		template<PVMultistepInt MultistepInt, PVSinglestepInt SinglestepInt>
-		void run(
-			const State& x0,
-			const general::time::JD& tk,
-			SinglestepIntegrator<SinglestepInt, Vec6, general::time::JD>& singlestep_int,
-			MultistepIntegrator<MultistepInt, Vec6, general::time::JD>& multistep_int,
-			const double step = 30.0)
-		{
-			if (step < 1.0)
-				throw std::invalid_argument("Invalid time step (should be > 1.0 sec)!");
-			if (tk <= x0.T)
-				throw std::invalid_argument("Invalid tk < tn!");
-			_deltatime = step / general::time::SEC_PER_DAY;
-			size_t index = multistep_int.degree() - 1;
-			size_t count = static_cast<size_t>((tk - x0.T) / _deltatime) + 1;
-			_trajectory.resize(count);
-			_times.resize(count);
-			_loops.resize(count);
-
-			_trajectory[0] = x0.vec;
-			_times[0] = x0.T;
-			_loops[0] = x0.loop;
-			_pModel->sBall = x0.Sb;
-			// performing initial calculations
-			start_run(step / 6, step, index, singlestep_int);
-			// performing remaining calculations
-			continue_run(step, index, multistep_int);
-		}
-
+		/// <returns>an array of vectors</returns>
+		const std::vector<R>& get_points() const { return _trajectory; }
 		/// <summary>
-		/// Run the trajectory calculation. 
-		/// Throws an exception when height is out of bounds (MinHeight, MaxHeight) or input arguments are invalid.
+		/// Time moments related to trajectory
 		/// </summary>
-		/// <typeparam name="MultistepInt">type of the multistep integrator that inherits the MultistepIntegrator base class</typeparam>
-		/// <typeparam name="SinglestepInt">type of the multistep integrator that inherits the SinglestepIntegrator base class</typeparam>
-		/// <param name="x0">an initial point</param>
-		/// <param name="tk">final time of the calculation</param>
-		/// <param name="singlestep_int">a multistep intergrator that will be used</param>
-		/// <param name="multistep_int">a single step integrator that will be used to calculate initial points</param>
-		/// <param name="step">time step for the multistep integrator</param>
-		template<PVMultistepInt MultistepInt, PVSinglestepInt SinglestepInt>
-		void run(
-			const State& x0, 
-			const general::time::JD& tk,
-			SinglestepIntegrator<SinglestepInt, Vec6, general::time::JD>&& singlestep_int,
-			MultistepIntegrator<MultistepInt, Vec6, general::time::JD>&& multistep_int,
-			const double step = 30.0)
+		/// <returns>an arrayt of time moments</returns>
+		const std::vector<general::time::JD>& get_times() const { return _times; }
+		/// <summary>
+		/// Loop numbers related to trajectory
+		/// </summary>
+		/// <returns>an array of loop numbers</returns>
+		const std::vector<size_t>& get_loops() const { return _loops; }
+		/// <summary>
+		/// Retreiving an orbit point
+		/// </summary>
+		/// <param name="time">is a julian date</param>
+		/// <returns>corresponding orbit data</returns>
+		template<size_t degree = 4>	Params<dim> get_point(const general::time::JD& time) const
 		{
-			run<MultistepInt, SinglestepInt>(x0, tk, singlestep_int, multistep_int, step);
-		}
-
-		template<PVSinglestepInt SinglestepInt>
-		void run(
-			const State& x0,
-			const general::time::JD& tk,
-			SinglestepIntegrator<SinglestepInt, Vec6, general::time::JD>& integrator,
-			const double step = 30.0)
-		{
-			if (step < 1.0)
-				throw std::invalid_argument("Invalid time step (should be > 1.0 sec)!");
-			if (tk <= x0.T)
-				throw std::invalid_argument("Invalid tk < tn!");
-			_deltatime = step / general::time::SEC_PER_DAY;
-			size_t count = static_cast<size_t>((tk - x0.T) / _deltatime) + 1;
-			_trajectory.resize(count);
-			_times.resize(count);
-			_loops.resize(count);
-
-			_trajectory[0] = x0.vec;
-			_times[0] = x0.T;
-			_loops[0] = x0.loop;
-			_pModel->sBall = x0.Sb;
-
-			single_run(step, integrator);
-		}
-
-		template<PVSinglestepInt SinglestepInt>
-		void run(
-			const State& x0,
-			const general::time::JD& tk,
-			SinglestepIntegrator<SinglestepInt, Vec6, general::time::JD>&& integrator,
-			const double step = 30.0)
-		{
-			run<SinglestepInt>(x0, tk, integrator, step);
-		}
-
-		// Calculating the state parameters.
-		// time - time of the trajectory point (should be between the start and final time of the integration);
-		// x - will be filled by the content.
-		State get_point(const general::time::JD& time) const
-		{
-			using long_t = long long;
+			using llong = long long;
 			auto count{ _trajectory.size() };
-			if (count < 4) throw std::length_error("Not enough points of trajectory!");
+			if (count < degree) throw std::length_error("Not enough points of trajectory!");
 			auto index = static_cast<size_t>((time - _times[0]) / _deltatime);
 			if (index < count) {
 				// checking the value sign of the z coordinate of the nearest point
-				bool intersection = std::signbit(_trajectory[index][2]) == true;
+				bool intersection = std::signbit(_trajectory[index][2]);
 				const size_t loop{ _loops[index] };
 				// get the index of the first point for the interpolation
 				index = static_cast<size_t>(
 					std::max(
-						long_t(0),
-						std::min(static_cast<long_t>(count) - 4, static_cast<long_t>(index) - 2)
+						llong(0),
+						std::min(llong(count) - llong(degree), llong(index) - llong(degree / 2))
 					));
 				// hence the interpolation performing
 				// P(t) = sum{n = 0..4} (mult{m = 0..4, m != n} (t - t_m)/(t_n - t_m)) x_n
-				Vec6 result;
+				R result;
 				double mult;
 				size_t indexn{ index };
-				for (size_t n = 0; n < 4; ++n) {
+				for (size_t n = 0; n < degree; ++n) {
 					mult = 1.0;
-					for (size_t m = 0; m < 4; ++m) {
-						if (m != n)	{
+					for (size_t m = 0; m < degree; ++m) {
+						if (m != n) {
 							mult *= (time - _times[index + m]) / (_times[indexn] - _times[index + m]);
 						}
 					}
 					result += mult * _trajectory[indexn++];
 				}
-				intersection = intersection && std::signbit(result[2]) == false;
-				return State(result, _pModel->sBall, time, loop + intersection ? 1 : 0);
+				intersection &= !std::signbit(result[2]);
+				return Params<dim>{ result, time, 0.0, loop + static_cast<size_t>(intersection) };
 			}
 			throw std::invalid_argument("Time is out of bounds!");
 		}
+		/// <summary>
+		/// Calculating an orbit
+		/// </summary>
+		/// <typeparam name="Intss">is a single step integrator type</typeparam>
+		/// <typeparam name="Intms">is a multiple step integrator type</typeparam>
+		/// <param name="x0">is initial orbit point</param>
+		/// <param name="tk">is final julian date for calculation</param>
+		/// <param name="func">is right part of </param>
+		/// <param name="singlestep_int"></param>
+		/// <param name="multistep_int"></param>
+		/// <param name="deltatime"></param>
+		template<class Inv, class Intss, class Intms> void run(
+			const Params<dim>& x0, const general::time::JD& tk,
+			const invoker<Inv, R, const R&, const general::time::JD&>& func,
+			const singlestep_integrator<Intss, R, general::time::JD>& singlestep_int,
+			const multistep_integrator<Intms, R, general::time::JD>& multistep_int,
+			const double deltatime = 30)
+		{
+			if (deltatime < 0.0)
+				throw std::invalid_argument("Invalid deltatime " + std::to_string(deltatime) + "!");
+			if (tk < x0.T + deltatime)
+				throw std::invalid_argument("Invalid tk < tn + deltatime!");
+			size_t index = multistep_int.degree() - 1;
+			size_t count = static_cast<size_t>((tk - x0.T) / deltatime) + 1;
+			_trajectory.resize(count);
+			_times.resize(count);
+			_loops.resize(count);
+			_trajectory[0] = x0.vec;
+			_times[0] = x0.T;
+			_loops[0] = x0.loop;
+			_deltatime = deltatime;
+			// performing initial calculations
+			start_run(index, singlestep_int, func);
+			// performing remaining calculations
+			continue_run(index, multistep_int, func);
+		}
 
-		/// <summary>
-		/// The reference to current trajectory
-		/// </summary>
-		/// <returns>an array of points by reference</returns>
-		const std::vector<Vec6>& trajectory() const { return _trajectory; }
-		/// <summary>
-		/// The reference to current list of times corresponding to trajectory points
-		/// </summary>
-		/// <returns>a list of time moments by reference</returns>
-		const std::vector<general::time::JD>& times() const { return _times; }
+		private:
+			template<class Inv, class Intss>
+			void start_run(
+				const size_t index,
+				const singlestep_integrator<Intss, R, general::time::JD>& integrator,
+				const invoker<Inv, R, const R&, const general::time::JD&>& func)
+			{
+				auto x0{ _trajectory[0] };
+				auto t0{ _times[0] };
+				R xk;
+				general::time::JD tk;
+				bool intersection;
+				const size_t n{ 6 };
+				const double step{ _deltatime / n };
+				for (size_t i = 0; i < index; ++i) {
+					_loops[i + 1] = _loops[i];
+					for (size_t k = 0; k < n; ++k) {
+						integrator.integrate(x0, t0, step, xk, tk, func);
+						intersection = std::signbit(x0[2]) && !std::signbit(xk[2]);
+						x0 = xk;
+						t0 = tk;
+						_loops[i + 1] += static_cast<size_t>(intersection);
+					}
+					_trajectory[i + 1] = xk;
+					_times[i + 1] = tk;
+				}
+			}
+
+			template<class Inv, class Intms>
+			void continue_run(
+				const size_t index,
+				const multistep_integrator<Intms, R, general::time::JD>& integrator,
+				const invoker<Inv, R, const R&, const general::time::JD&>& func)
+			{
+				bool intersection;
+				auto x_iter{ _trajectory.cbegin() };
+				auto t_iter{ _times.cbegin() };
+				for (size_t i = index; i < _trajectory.size() - 1; ++i) {
+					integrator.integrate(x_iter._Ptr, t_iter._Ptr, _deltatime, _trajectory[i + 1], _times[i + 1], func);
+					intersection = std::signbit(_trajectory[i][2]) && !std::signbit(_trajectory[i + 1][2]);
+					_loops[i + 1] = _loops[i] + static_cast<size_t>(intersection);
+					++x_iter;
+					++t_iter;
+				}
+			}
+
 	};
-	/// <summary>
-	/// Fast creating ball class example
-	/// </summary>
-	/// <param name="pModel">a model of the movement</param>
-	template<TransModel Model>
-	auto make_forecast(std::unique_ptr<Model>&& pModel) -> Forecast<Model>
-	{
-		return Forecast<Model>(std::forward<std::unique_ptr<Model>>(pModel));
-	}
+
+	
 }

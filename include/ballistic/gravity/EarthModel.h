@@ -29,10 +29,10 @@ namespace ball
 		size_t& count)
 	{
 		if (!is) return;
-		const size_t size = ((number + 2) * (number + 1)) / 2;
-		list.resize(size);
+		const size_t dim = ((number + 2) * (number + 1)) / 2;
+		list.resize(dim);
 		count = 0;
-		while (!is.eof() && count < size) {
+		while (!is.eof() && count < dim) {
 			is >> list[count].first >> list[count].second;
 			++count;
 		}

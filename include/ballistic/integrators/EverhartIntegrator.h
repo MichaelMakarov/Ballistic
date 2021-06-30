@@ -16,7 +16,7 @@ namespace ball
 		}
 	}
 	template<Arithmetic R, Time T, size_t degree = 4>
-	class EverhartIntegrator : public SinglestepIntegrator<EverhartIntegrator<R, T, degree>, R, T>
+	class everhart_integrator : public singlestep_integrator<everhart_integrator<R, T, degree>, R, T>
 	{
 		static_assert(degree >= 2 && degree <= 7, "Not implemented for Everhart's integrator!");
 		
@@ -24,8 +24,7 @@ namespace ball
 		general::math::MatrixMxN<degree, degree> _matrix;
 
 	public:
-		EverhartIntegrator() : SinglestepIntegrator<EverhartIntegrator<R, T, degree>, R, T>() 
-		{
+		everhart_integrator() : singlestep_integrator<everhart_integrator<R, T, degree>, R, T>() {
 			fill_array(_tau);
 			for (size_t i = 0; i < degree; ++i) _matrix(i, i) = 1.0;
 			for (size_t i = 1; i < degree; ++i) _matrix(0, i) = -_matrix(0, i - 1) * _tau[i - 1];
@@ -35,16 +34,13 @@ namespace ball
 				}
 			}
 		}
-		~EverhartIntegrator() = default;
+		~everhart_integrator() = default;
 
-		template<class Inv>
-		void integrate(
-			const R& x0,
-			const T& t0,
+		template<class Inv> void integrate(
+			const R& x0, const T& t0,
 			const double step,
-			R& xk,
-			T& tk,
-			const Func<Inv, R, T>& func) const
+			R& xk, T& tk,
+			const invoker<Inv, R, const R&, const T&>& func) const
 		{
 			xk = func(x0, t0);
 			auto calc_x = [xk, x0, step](const std::array<R, degree>& c, const double t) {

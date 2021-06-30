@@ -10,69 +10,35 @@ namespace ball
     /// </summary>
     using Vec6 = general::math::Vec<6>;
 
-    // Struct represents the movement of the center of mass.
+    // The parameters of motion
     // Contains major parameters of the movement.
-    struct State
+    template<size_t dim = 6>
+    struct Params
     {
-        Vec6 vec;                   // vector's coordinates (depends on coordinate system)
-        double Sb;                  // a ballistic coefficient
-        general::time::JD T;        // a julian date
-        size_t loop;                // a number of the loop
+        general::math::Vec<dim> vec{};// vector defines an orbit movement
+        general::time::JD T{};        // a julian date
+        double sb{};                  // ballistic parameter
+        size_t loop{};                // a number of the loop
 
-        State() : vec(), Sb(0), T(), loop(0) {}
-        State(
-            const Vec6 vec,
-            const double sb,
-            const general::time::JD& t,
-            const size_t loop) :
-            vec{ vec }, Sb{ sb }, T{ t }, loop{ loop }
-        {}
-        State(
-            const double posX,
-            const double posY,
-            const double posZ,
-            const double velX,
-            const double velY,
-            const double velZ,
-            const double sb,
-            const general::time::JD& t,
-            const size_t loop) :
-            vec{ { posX, posY, posZ, velX, velY, velZ } },
-            Sb{ sb }, T{ t }, loop{ loop }
-        {}
-
-        friend std::ostream& operator << (std::ostream& os, const State& p);
+        friend std::ostream& operator << (std::ostream& os, const Params& p)
+        {
+            os << "T: " << jd_to_datetime(p.T) << "; vec: " << p.vec << "; loop = " << p.loop << "; s = " << p.sb;
+            return os;
+        }
     };
 
     // Struct represents the oscullar parameters of the orbit.
     // Contains the oscullar parameters, time, ballstic coefficient and loop.
     struct Oscul
     {
-        double A;               // a semimajor axis
-        double E;               // an eccentricity
-        double I;               // an inclination
-        double W;               // an argument of periapsis
-        double O;               // a longitude of the ascending node
-        double M;               // a mean anomaly
-        double Sb;              // a ballistic coefficient
-        general::time::JD T;    // a julian date refered to midnight
-        size_t loop;            // a number of the loop
-
-        Oscul() : A(0), E(0), I(0), W(0), O(0), M(0), Sb(0), T(0), loop(0) {}
-        Oscul(
-            const double a,
-            const double e,
-            const double i,
-            const double w,
-            const double o,
-            const double m,
-            const double sb,
-            const general::time::JD& t,
-            const size_t loop = 0) :
-            A{ a }, E{ e }, I{ i }, W{ w }, O{ o }, M{ m }, Sb{ sb }, T{ t }, loop{ loop }
-        {}
-        ~Oscul() {}
-
-        friend std::ostream& operator << (std::ostream& os, const Oscul& p);
+        double semiaxis;                // a semimajor axis
+        double eccentricity;            // an eccentricity
+        double inclination;             // an inclination
+        double periapsis;               // an argument of periapsis
+        double ascendnode;              // a longitude of the ascending node
+        double meananomaly;             // a mean anomaly
+        double ecanomaly;               // an eccentric anomaly
+        double trueanomaly;             // a true anomaly
+        double latitudearg;                 // a longitude argument
     };
 }

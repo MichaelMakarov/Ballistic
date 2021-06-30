@@ -28,7 +28,7 @@ namespace ball
 		const general::math::Vec3& position,
 		const general::time::JD& time) const
 	{
-		double h = GCS_height_from_position(position, _eR, _eFl);
+		double h = height_from_gcsposition(position, _eR, _eFl);
 		size_t i{ 1 };
 		for ( ; i < 9; ++i)
 			if (h < _height[i]) break;

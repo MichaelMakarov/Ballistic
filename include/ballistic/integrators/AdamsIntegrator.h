@@ -4,7 +4,7 @@
 namespace ball
 {
 	template<Arithmetic R, Time T>
-	class AdamsIntegrator : public MultistepIntegrator<AdamsIntegrator<R, T>, R, T>
+	class adams_integrator : public multistep_integrator<adams_integrator<R, T>, R, T>
 	{
 	private:
 		const double _b[8]
@@ -31,16 +31,13 @@ namespace ball
 		};
 
 	public:
-		AdamsIntegrator() : MultistepIntegrator<AdamsIntegrator<R, T>, R, T>(8) {}
-		~AdamsIntegrator() = default;
+		adams_integrator() : multistep_integrator<adams_integrator<R, T>, R, T>(8) {}
 
-		template<class Inv>
-		void integrate(
+		template<class Inv> void integrate(
 			const R* pR, const T* pT,
 			const double step,
-			R& xk,
-			T& tk,
-			const Func<Inv, R, T>& func) const
+			R& xk, T& tk,
+			const invoker<Inv, R, const R&, const T&>& func) const
 		{
 			xk = R();
 			auto xt{ func(*pR, *pT) * _b[0] };

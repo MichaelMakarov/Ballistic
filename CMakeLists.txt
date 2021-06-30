@@ -20,7 +20,7 @@ include_directories(
 add_library(
 	Ballistic 
 
-	src/Structures.cpp
+	
 	src/Ballistic.cpp
 
 	src/GeoPotential.cpp
@@ -39,7 +39,7 @@ add_library(
 	src/Object.cpp
 
 	src/LowOrbModel.cpp
-	src/AdjustTrajectory.cpp
+	"src/OrbitAdjustment.cpp"
 
 	src/DataProviders.cpp
 	src/Conversions.cpp  

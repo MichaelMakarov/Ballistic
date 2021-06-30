@@ -1,7 +1,5 @@
 #pragma once
-#include "general/Vector.h"
-#include "general/Times.h"
-
+#include "Structures.h"
 
 namespace ball
 {
@@ -12,7 +10,7 @@ namespace ball
 	/// <param name="rad">the Earth's equator radius</param>
 	/// <param name="fl">the Earth's flatenning</param>
 	/// <returns>a height above the Earth's ellipsoid</returns>
-	double GCS_height_from_position(
+	double height_from_gcsposition(
 		const general::math::Vec3& pos,
 		const double rad, const double fl);
 	// True anomaly calculation using the eccentric anomaly and the eccentricity.
@@ -44,47 +42,47 @@ namespace ball
 	/// <param name="vec"> - a vector (x,y,z)</param>
 	/// <param name="t"> - sidereal time</param>
 	/// <returns></returns>
-	general::math::Vec3 ACS_to_GCS(const general::math::Vec3& vec, const double t);
+	general::math::Vec3 ACS_to_GCS(const general::math::Vec3& vec, const double sidereal_time);
 	/// <summary>
 	/// Conversion from GCS to ACS
 	/// </summary>
 	/// <param name="vec"> - a vector (x,y,z)</param>
 	/// <param name="t"> - sidereal time</param>
 	/// <returns></returns>
-	general::math::Vec3 GCS_to_ACS(const general::math::Vec3& vec, const double t);
+	general::math::Vec3 GCS_to_ACS(const general::math::Vec3& vec, const double sidereal_time);
 	/// <summary>
 	/// conversion from ecliptic coordinate system to absolute
 	/// </summary>
 	/// <param name="vec"> - a vector (x, y, z)</param>
 	/// <param name="e"> - ecliptic inclination</param>
 	/// <returns>a vector (x, y, z) in ACS</returns>
-	general::math::Vec3 ECS_to_ACS(const general::math::Vec3& vec, const double e);
+	general::math::Vec3 ECS_to_ACS(const general::math::Vec3& vec, const double ecl_incl);
 	/// <summary>
 	/// conversion from absolute coordinate system to ecliptic
 	/// </summary>
 	/// <param name="vec"> - a vector (x, y, z)</param>
 	/// <param name="e"> - ecliptic inclination</param>
 	/// <returns>a vector (x, y, z) in ECS</returns>
-	general::math::Vec3 ACS_to_ECS(const general::math::Vec3& vec, const double e);
+	general::math::Vec3 ACS_to_ECS(const general::math::Vec3& vec, const double ecl_incl);
 	/// <summary>
 	/// calculating the julian centures since 2000
 	/// </summary>
 	/// <param name="jd"> - julian date related to mig=dnight</param>
 	/// <returns></returns>
-	double jd_to_jc2000(const general::time::JD& jd);
+	inline constexpr double jd_to_jc2000(const general::time::JD& jd) noexcept {
+		return (jd - general::time::JD2000 * general::time::SEC_PER_DAY).to_double() / 36525;
+	}
+
 
 	/// <summary>
-	/// average sidereal time according RD50
+	/// calculating orbital parameters from position and velocity
 	/// </summary>
-	/// <param name="jd"> - julian date refered to midnight</param>
-	/// <param name="timezone"> - hours of timezone</param>
-	/// <returns>sidereal time in rad</returns>
-	double sidereal_time_avr(const general::time::JD& jd, const double timezone = 0);
-	/// <summary>
-	/// true sidereal time accoring RD50
-	/// </summary>
-	/// <param name="jd"> - julian date refered to midnight</param>
-	/// <param name="timezone"> - hours of timezone</param>
-	/// <returns>sidereal time in rad</returns>
-	double sidereal_time_true(const general::time::JD& jd, const double timezone = 0);
+	/// <param name="pos">is a position vector in absolute cartesian coordinate system</param>
+	/// <param name="vel">is a velocity vector in absolute cartesian coordinate system</param>
+	/// <param name="mu">is a gravitational parameter</param>
+	/// <returns>a struct of orbital parameters</returns>
+	Oscul oscul_from_ACS(
+		const general::math::Vec3& pos,
+		const general::math::Vec3& vel,
+		const double mu);
 }

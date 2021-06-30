@@ -56,10 +56,10 @@ namespace ball
 		const double _f10_7;
 		const double _kp;
 
-		const static double ISA_STEP;
-		const static double LOWER_H;
-		const static double UPPER_H;
-		const static double NIGHT_DENSITY;
+		constexpr inline const static double ISA_STEP = 25.0;
+		constexpr inline const static double LOWER_H = 120.0;
+		constexpr inline const static double UPPER_H = 1500.0;
+		constexpr inline const static double NIGHT_DENSITY = 1.58868e-8;
 
 		const static double Isa[6];
 

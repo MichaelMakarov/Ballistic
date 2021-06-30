@@ -1,6 +1,4 @@
 #include "SolarSystem.h"
-#include "Conversions.h"
-#include "general/Mathematics.h"
 
 namespace ball
 {
@@ -123,7 +121,29 @@ namespace ball
 		diff[0] *= diff[0];
 		diff[1] *= diff[1];
 		diff[2] *= diff[2];
-		return -mu / std::pow(dist, 3) * (Vec3::ones() + diff * 3 / point.length() / dist);
+		return mu / std::pow(dist, 3) * (diff * 3 / point.length() / dist - Vec3::ones());
+	}
+
+	double sidereal_time_true(const general::time::JD& jd) noexcept
+	{
+		using namespace general::math;
+		double jc = jd_to_jc2000(jd);
+		// ecliptic inclination
+		double e = Sun::ecliptic_mean_incl(jc);
+		// lunar mean anomaly
+		double la = Moon::ecl_mean_anomaly(jc);
+		//solar mean anomaly
+		double sa = Sun::ecl_mean_anomaly(jc);
+		// lunar mean argument of latitude
+		double f = Moon::ecl_mean_latarg(jc);
+		// difference between lunar and solar longitudes
+		double d = Sun::ecl_delta_lslong(jc);
+		// ecliptic mean longitude of lunar ascending node
+		double o = Moon::ecl_mean_ascnode_long(jc);
+		// the Earth's nutation in ascension
+		double nut = -0.83386e-4 * std::sin(o) + 0.9997e-6 * std::sin(2 * o) + 0.6913e-6 * std::sin(sa) -
+			0.63932e-5 * std::sin(2 * (f - d + o)) - 0.11024e-5 * std::sin(2 * (f + o));
+		return rad_to_2pi(sidereal_time_mean(jd) + nut * std::cos(e));
 	}
 	
 }

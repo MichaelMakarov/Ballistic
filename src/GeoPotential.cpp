@@ -94,7 +94,7 @@ namespace ball
 		return -pnm * tgphi * m + pnm1 * (m < n) * std::sqrt((n - m) * (n + m + 1) * delta(m));
 	}
 
-	general::math::Vec3 GeoPotential::derivatives(const general::math::Vec3& point)
+	general::math::Vec3 GeoPotential::acceleration(const general::math::Vec3& point)
 	{
 		using namespace general::math;
 		
@@ -108,11 +108,13 @@ namespace ball
 		const double mu_r2{ _eMu / r / r };
 		const double R_r{ _eR / r };
 		double mult{ 1 };
-		const Matrix3x3 CT = Matrix3x3({
-			{ cosphi * coslambda, -sinphi * coslambda, -sinlambda },
-			{ cosphi * sinlambda, -sinphi * sinlambda, coslambda },
-			{ sinphi, cosphi, 0 }
-		});
+		const Matrix3x3 CT = Matrix3x3{
+			{
+				{ cosphi * coslambda, -sinphi * coslambda, -sinlambda },
+				{ cosphi * sinlambda, -sinphi * sinlambda, coslambda },
+				{ sinphi,				cosphi,				0 }
+			} 
+		};
 
 		size_t k{ 0 };
 		double kcs, ksc, poly;
@@ -121,7 +123,7 @@ namespace ball
 		calc_trigonometric(coslambda, sinlambda);
 		calc_polynoms(cosphi, sinphi);
 
-		// calculating the potential derivatives
+		// calculating the potential acceleration
 		for (size_t n = 0; n <= _count; ++n) {
 			dUn[0] = dUn[1] = dUn[2] = 0.0;
 			for (size_t m = 0; m <= n; ++m) {
@@ -145,7 +147,7 @@ namespace ball
 		return CT * dUsum;
 	}
 
-	std::pair<general::math::Vec3, general::math::Matrix3x3> GeoPotential::fullderivatives(const general::math::Vec3& point)
+	std::pair<general::math::Vec3, general::math::Matrix3x3> GeoPotential::derivatives(const general::math::Vec3& point)
 	{
 		using namespace general::math;
 
@@ -160,25 +162,25 @@ namespace ball
 		const double R_r{ _eR / r };
 		double mult{ 1 };
 		const auto CT = Matrix3x3({
-			{ cosphi * coslambda, -sinphi * coslambda, -sinlambda },
-			{ cosphi * sinlambda, -sinphi * sinlambda, coslambda },
-			{ sinphi, cosphi, 0 }
+			{  cosphi * coslambda,	-sinphi * coslambda,	-sinlambda },
+			{  cosphi * sinlambda,	-sinphi * sinlambda,	 coslambda },
+			{  sinphi,				 cosphi,				 0 }
 		});
 		const auto C = Matrix3x3({
-			{ cosphi * coslambda, cosphi * sinlambda, sinphi },
-			{ -sinphi * coslambda, -sinphi * sinlambda, cosphi },
-			{ -sinlambda, coslambda, 0 }
+			{  cosphi * coslambda,	 cosphi * sinlambda,	 sinphi },
+			{ -sinphi * coslambda,	-sinphi * sinlambda,	 cosphi },
+			{ -sinlambda,			 coslambda,				 0 }
 		});
 		Matrix3x3 G;
 		size_t k{ 0 };
 		double kcs, ksc, dpoly, poly;
-		Vec<3> dUn, dUsum, ddUn;
+		Vec3 dUn, dUsum, ddUn;
 		Vec<6> ddUsum;
 
 		calc_trigonometric(coslambda, sinlambda);
 		calc_polynoms(cosphi, sinphi);
 
-		// calculating the potential derivatives
+		// calculating the potential acceleration
 		for (size_t n = 0; n <= _count; ++n) {
 			dUn[0] = dUn[1] = dUn[2] = 0.0;
 			ddUn[0] = ddUn[1] = ddUn[2] = 0.0;
@@ -193,7 +195,7 @@ namespace ball
 				dUn[1] += dpoly * kcs;		// a derivative by phi
 				dUn[2] += poly * ksc * m;	// a derivative by lambda
 				// a double derivative by phi
-				ddUn[0] += dpnm(_pnm[k + 1], _pnm[k + 2], n, m + 1, tgphi) - m * (poly / cosphi2 + dpoly * tgphi);
+				ddUn[0] += (dpnm(_pnm[k + 1], _pnm[k + 2], n, m + 1, tgphi) - m * (poly / cosphi2 + dpoly * tgphi)) * kcs;
 				ddUn[1] += dpoly * ksc * m;	// a derivative by phi and lambda
 				ddUn[2] = dUn[0] * m * m;	// a double derivative by lambda
 				++k;
@@ -215,11 +217,11 @@ namespace ball
 		ddUsum[2] /= cosphi;
 		ddUsum[4] /= cosphi;
 		ddUsum[5] /= cosphi * cosphi;
-		// matrix of partial derivatives filling
+		// matrix of partial acceleration filling
 		G(0, 0) = ddUsum[0];
 		G(0, 1) = G(1, 0) = ddUsum[1] - dUsum[1] / r;
 		G(0, 2) = G(2, 0) = ddUsum[2] - dUsum[2] / r;
-		G(1, 1) = dUsum[0] + ddUsum[3];
+		G(1, 1) = dUsum[0] / r + ddUsum[3];
 		G(1, 2) = G(2, 1) = tgphi * dUsum[2] / r + ddUsum[4];
 		G(2, 2) = (dUsum[0] - tgphi * dUsum[1]) / r + ddUsum[5];
 

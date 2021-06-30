@@ -46,16 +46,16 @@ namespace ball
 		/// <returns>geopotential value</returns>
 		double operator () (const general::math::Vec3& point);
 		/// <summary>
-		/// Calculating the potential derivatives with respect to geocentric cartesian coordinates 
+		/// Calculating the potential acceleration with respect to geocentric cartesian coordinates 
 		/// </summary>
 		/// <param name="point"> - a point in GCS where to calculate the geopotential</param>
-		/// <returns>a vector of partial derivatives (dU/dx, dU/dy, dU/dz)</returns>
-		general::math::Vec3 derivatives(const general::math::Vec3& point);
+		/// <returns>a vector of partial acceleration (dU/dx, dU/dy, dU/dz)</returns>
+		general::math::Vec3 acceleration(const general::math::Vec3& point);
 		/// <summary>
-		/// Calculating the potential derivatives of the first and second degree with respect to geocentric cartesian coordinates
+		/// Calculating the potential acceleration of the first and second degree with respect to geocentric cartesian coordinates
 		/// </summary>
 		/// <param name="point"> - a point in GCS where to calculate the geopotential</param>
-		/// <returns>a vector of first degree derivatives and matrix of second degree partial derivatives</returns>
-		std::pair<general::math::Vec3, general::math::Matrix3x3> fullderivatives(const general::math::Vec3& point);
+		/// <returns>a vector of first degree acceleration and matrix of second degree partial acceleration</returns>
+		std::pair<general::math::Vec3, general::math::Matrix3x3> derivatives(const general::math::Vec3& point);
 	};
 }

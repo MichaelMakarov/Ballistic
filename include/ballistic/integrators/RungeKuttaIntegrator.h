@@ -4,20 +4,16 @@
 namespace ball
 {
 	template<Arithmetic R, Time T>
-	class RKIntegrator : public SinglestepIntegrator<RKIntegrator<R, T>, R, T>
+	class rk_integrator : public singlestep_integrator<rk_integrator<R, T>, R, T>
 	{
 	public:
-		RKIntegrator() : SinglestepIntegrator<RKIntegrator<R, T>, R, T>() {}
-		~RKIntegrator() = default;
-
-		template<class Inv>
-		void integrate(
+		template<class Inv> void integrate(
 			const R& x0,
 			const T& t0,
 			const double step,
 			R& xk,
 			T& tk,
-			const Func<Inv, R, T>& func) const
+			const invoker<Inv, R, const R&, const T&>& func) const
 		{
 			const double step_2 = 0.5 * step, step_6 = step / 6;
 			auto t = t0 + step_2;

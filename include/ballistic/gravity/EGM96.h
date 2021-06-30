@@ -6,8 +6,8 @@ namespace ball
 	class EGM96 : public IEarth
 	{
 	public:
-		inline size_t count() const { return _count; }
-		const std::vector<std::pair<double, double>>& harmonics() const { return _harmonics; }
+		inline size_t count() const override { return _count; }
+		const std::vector<std::pair<double, double>>& harmonics() const override { return _harmonics; }
 
 		constexpr static inline double Mu() { return 0.3986004415E+15; }
 		constexpr static inline double R() { return 0.6378136300E+07; }
